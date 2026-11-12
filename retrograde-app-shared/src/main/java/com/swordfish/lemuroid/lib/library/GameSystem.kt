@@ -920,7 +920,30 @@ data class GameSystem(
                             scanByFilename = false,
                             scanByUniqueExtension = false,
                             scanByPathAndFilename = true,
-                            scanByPathAndSupportedExtensions = false,
+                            scanByPathAndSupportedExtensions = true,
+                        ),
+                ),
+                GameSystem(
+                    SystemID.COLECO,
+                    "Coleco - ColecoVision",
+                    R.string.game_system_title_coleco,
+                    R.string.game_system_abbr_coleco,
+                    listOf(
+                        SystemCoreConfig(
+                            CoreID.GEARCOLECO,
+                            controllerConfigs =
+                                hashMapOf(
+                                    0 to arrayListOf(ControllerConfigs.SMS),
+                                ),
+                        ),
+                    ),
+                    uniqueExtensions = listOf("col"),
+                    supportedExtensions = listOf("col", "zip", "rom"),
+                    scanOptions =
+                        ScanOptions(
+                            scanByFilename = false,
+                            scanByUniqueExtension = true,
+                            scanByPathAndSupportedExtensions = true,
                         ),
                 ),
                 GameSystem(

@@ -84,16 +84,23 @@ android {
         }
 
         maybeCreate("release").apply {
-            storeFile = file("$rootDir/release.jks")
-            keyAlias = "lemuroid"
-            storePassword = "lemuroid"
-            keyPassword = "lemuroid"
+            if (file("$rootDir/release.jks").exists()) {
+                storeFile = file("$rootDir/release.jks")
+                keyAlias = "lemuroid"
+                storePassword = "lemuroid"
+                keyPassword = "lemuroid"
+            } else {
+                storeFile = file("$rootDir/debug.keystore")
+                keyAlias = "androiddebugkey"
+                storePassword = "android"
+                keyPassword = "android"
+            }
         }
     }
 
     buildTypes {
         getByName("release") {
-            isMinifyEnabled = true
+            isMinifyEnabled = false
             signingConfig = signingConfigs["release"]
             proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")
             resValue("string", "lemuroid_name", "Lemuroid")

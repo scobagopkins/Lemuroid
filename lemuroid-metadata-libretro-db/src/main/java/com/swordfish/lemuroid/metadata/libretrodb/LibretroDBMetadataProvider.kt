@@ -101,7 +101,11 @@ class LibretroDBMetadataProvider(private val ovgdbManager: LibretroDBManager) :
         parent: String?,
         dbname: String,
     ): Boolean {
-        return parent?.toLowerCase(Locale.getDefault())?.contains(dbname) == true
+        val p = parent?.toLowerCase(Locale.getDefault()) ?: return false
+        if (p.contains(dbname)) return true
+        if (dbname == "mame2003plus" && (p.contains("mame") || p.contains("arcade"))) return true
+        if (dbname == "coleco" && p.contains("coleco")) return true
+        return false
     }
 
     private suspend fun findByCRC(

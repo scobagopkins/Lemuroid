@@ -111,6 +111,11 @@ enum class CoreID(
         "DosBox Pure",
         "libdosbox_pure_libretro_android.so",
     ),
+    GEARCOLECO(
+        "gearcoleco",
+        "Gearcoleco",
+        "libgearcoleco_libretro_android.so",
+    ),
     ;
 
     companion object {
