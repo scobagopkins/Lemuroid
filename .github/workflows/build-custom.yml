@@ -65,13 +65,14 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: custom-build
-          name: "Lemuroid with Sony ZN-1 & ColecoVision support"
+          tag_name: custom-v2
+          name: "Lemuroid with Sony ZN-1 & ColecoVision support (v2)"
           body: |
-            Custom build of Lemuroid:
-            - Built-in MAME 2003-Plus for Sony ZN-1/ZN-2 arcade 3D games (Street Fighter EX, Star Gladiator, Rival Schools)
-            - Built-in Gearcoleco core for ColecoVision (.col cartridges)
-            - Bundled offline cores (no Google Play dynamic downloads needed)
+            Custom build of Lemuroid (v2):
+            - Auto-embedded ColecoVision BIOS (OS-7) in internal assets (no manual coleco.rom placement needed)
+            - Fixed ColecoVision BIOS detection in BiosManager
+            - Disabled MIPS Dynarec in MAME 2003-Plus to prevent ARM boot-hangs on green screen
+            - Enabled skip_disclaimer and skip_warnings in MAME 2003-Plus
           files: dist/Lemuroid-custom-zn-coleco.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

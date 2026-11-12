@@ -18,6 +18,19 @@ class DirectoriesManager(private val appContext: Context) {
     fun getSystemDirectory(): File =
         File(appContext.filesDir, "system").apply {
             mkdirs()
+            try {
+                listOf("colecovision.rom", "coleco.rom").forEach { name ->
+                    val dest = File(this, name)
+                    if (!dest.exists()) {
+                        appContext.assets.open(name).use { input ->
+                            dest.outputStream().use { output ->
+                                input.copyTo(output)
+                            }
+                        }
+                    }
+                }
+            } catch (ignored: Exception) {
+            }
         }
 
     fun getStatesDirectory(): File =

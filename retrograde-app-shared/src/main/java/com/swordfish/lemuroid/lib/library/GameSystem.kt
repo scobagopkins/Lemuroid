@@ -902,6 +902,12 @@ data class GameSystem(
                     listOf(
                         SystemCoreConfig(
                             CoreID.MAME2003PLUS,
+                            defaultSettings =
+                                listOf(
+                                    CoreVariable("mame2003-plus_skip_disclaimer", "enabled"),
+                                    CoreVariable("mame2003-plus_skip_warnings", "enabled"),
+                                    CoreVariable("mame2003-plus_mips_dynarec", "disabled"),
+                                ),
                             statesSupported = false,
                             controllerConfigs =
                                 hashMapOf(

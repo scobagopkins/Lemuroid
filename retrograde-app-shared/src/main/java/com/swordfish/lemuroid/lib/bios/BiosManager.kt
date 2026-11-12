@@ -182,6 +182,14 @@ class BiosManager(private val directoriesManager: DirectoriesManager) {
                     "945F9DC9",
                     "nds_firmware.bin",
                 ),
+                Bios(
+                    "colecovision.rom",
+                    "2C66F5911E5B42B8EBE113403548EEE7",
+                    "ColecoVision OS-7",
+                    SystemID.COLECO,
+                    "3AA93EF3",
+                    "coleco.rom",
+                ),
             )
     }
 }
