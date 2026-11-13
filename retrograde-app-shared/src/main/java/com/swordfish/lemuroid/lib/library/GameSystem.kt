@@ -954,6 +954,10 @@ data class GameSystem(
                     listOf(
                         SystemCoreConfig(
                             CoreID.GEARCOLECO,
+                            defaultSettings =
+                                listOf(
+                                    CoreVariable("gearcoleco_aspect_ratio", "4:3 DAR"),
+                                ),
                             controllerConfigs =
                                 hashMapOf(
                                     0 to arrayListOf(ControllerConfigs.SMS),

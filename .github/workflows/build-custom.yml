@@ -27,18 +27,25 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      - name: Generate release keystore (non-debug cert)
+      - name: Cache release keystore (consistent signing across versions)
+        uses: actions/cache@v4
+        with:
+          path: release.jks
+          key: lemuroid-custom-keystore-v1
+
+      - name: Generate release keystore if missing
         run: |
-          rm -f release.jks
-          keytool -genkeypair -v \
-            -keystore release.jks \
-            -alias lemuroid \
-            -storepass lemuroid \
-            -keypass lemuroid \
-            -keyalg RSA \
-            -keysize 2048 \
-            -validity 10000 \
-            -dname "CN=Lemuroid Custom, O=Lemuroid, C=US"
+          if [ ! -f release.jks ]; then
+            keytool -genkeypair -v \
+              -keystore release.jks \
+              -alias lemuroid \
+              -storepass lemuroid \
+              -keypass lemuroid \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=Lemuroid Custom, O=Lemuroid, C=US"
+          fi
 
       - name: Download Gearcoleco, MAME 2003-Plus (latest) and MAME 2010 cores (arm64-v8a)
         run: |
@@ -93,8 +100,8 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: custom-v6
-          name: "Lemuroid Custom (arm64-v8a, Release-signed, v6)"
+          tag_name: custom-v7
+          name: "Lemuroid Custom (arm64-v8a, Release-signed, v7)"
           body: |
             Custom build of Lemuroid (v5, arm64-v8a):
             - Signed with non-debug release certificate (v1+v2+v3)
