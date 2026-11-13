@@ -1,6 +1,11 @@
 package com.swordfish.lemuroid.app.mobile.feature.game
 
 import android.graphics.RectF
+import android.view.KeyEvent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -13,6 +18,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
@@ -24,6 +31,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -31,11 +39,16 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.boundsInRoot
@@ -44,7 +57,10 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.constraintlayout.compose.ConstraintLayout
@@ -56,7 +72,9 @@ import com.swordfish.lemuroid.lib.controller.ControllerConfig
 import com.swordfish.touchinput.controller.R
 import com.swordfish.touchinput.radial.LemuroidPadTheme
 import com.swordfish.touchinput.radial.LocalLemuroidPadTheme
+import com.swordfish.libretrodroid.GLRetroView
 import com.swordfish.touchinput.radial.sensors.TiltConfiguration
+import com.swordfish.touchinput.radial.settings.TouchControllerID
 import com.swordfish.touchinput.radial.settings.TouchControllerSettingsManager
 import com.swordfish.touchinput.radial.ui.GlassSurface
 import com.swordfish.touchinput.radial.ui.LemuroidButtonPressFeedback
@@ -211,6 +229,19 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
                 .collectAsState(true)
                 .value
 
+        val isColecoTouchVisible =
+            !isLoading &&
+                touchControllerSettings != null &&
+                currentControllerConfig?.touchControllerID == TouchControllerID.COLECO &&
+                touchControlsVisibleState.value
+
+        if (isColecoTouchVisible) {
+            ColecoKeypadOverlay(
+                modifier = Modifier.align(Alignment.BottomCenter),
+                viewModel = viewModel,
+            )
+        }
+
         if (isLoading) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -218,6 +249,160 @@ fun MobileGameScreen(viewModel: BaseGameScreenViewModel) {
             ) {
                 CircularProgressIndicator()
             }
+        }
+    }
+}
+
+private sealed interface ColecoKeypadTarget {
+    data class Key(val keyCode: Int) : ColecoKeypadTarget
+
+    data class Analog(val x: Float, val y: Float) : ColecoKeypadTarget
+}
+
+@Composable
+private fun ColecoKeypadOverlay(
+    modifier: Modifier = Modifier,
+    viewModel: BaseGameScreenViewModel,
+) {
+    var showKeypad by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = modifier.padding(bottom = 10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        if (showKeypad) {
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = Color(0xDD181A1F),
+                modifier =
+                    Modifier.border(
+                        width = 1.dp,
+                        color = Color.White.copy(alpha = 0.25f),
+                        shape = RoundedCornerShape(14.dp),
+                    ),
+            ) {
+                Column(
+                    modifier = Modifier.padding(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    val rows =
+                        listOf(
+                            listOf(
+                                "1" to ColecoKeypadTarget.Key(KeyEvent.KEYCODE_BUTTON_Y),
+                                "2" to ColecoKeypadTarget.Key(KeyEvent.KEYCODE_BUTTON_X),
+                                "3" to ColecoKeypadTarget.Key(KeyEvent.KEYCODE_BUTTON_L1),
+                            ),
+                            listOf(
+                                "4" to ColecoKeypadTarget.Key(KeyEvent.KEYCODE_BUTTON_R1),
+                                "5" to ColecoKeypadTarget.Key(KeyEvent.KEYCODE_BUTTON_L2),
+                                "6" to ColecoKeypadTarget.Key(KeyEvent.KEYCODE_BUTTON_R2),
+                            ),
+                            listOf(
+                                "7" to ColecoKeypadTarget.Key(KeyEvent.KEYCODE_BUTTON_THUMBL),
+                                "8" to ColecoKeypadTarget.Key(KeyEvent.KEYCODE_BUTTON_THUMBR),
+                                "9" to ColecoKeypadTarget.Analog(0f, -1f),
+                            ),
+                            listOf(
+                                "*" to ColecoKeypadTarget.Key(KeyEvent.KEYCODE_BUTTON_START),
+                                "0" to ColecoKeypadTarget.Analog(-1f, 0f),
+                                "#" to ColecoKeypadTarget.Key(KeyEvent.KEYCODE_BUTTON_SELECT),
+                            ),
+                        )
+                    rows.forEach { row ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            row.forEach { (label, target) ->
+                                ColecoKeypadButton(
+                                    label = label,
+                                    target = target,
+                                    viewModel = viewModel,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Box(
+            modifier =
+                Modifier
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(if (showKeypad) Color(0xCC2C3E50) else Color(0x88000000))
+                    .border(1.dp, Color.White.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
+                    .clickable { showKeypad = !showKeypad }
+                    .padding(horizontal = 14.dp, vertical = 6.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = if (showKeypad) "✕ 123" else "123",
+                color = Color.White,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ColecoKeypadButton(
+    label: String,
+    target: ColecoKeypadTarget,
+    viewModel: BaseGameScreenViewModel,
+) {
+    var isPressed by remember { mutableStateOf(false) }
+
+    Box(
+        modifier =
+            Modifier
+                .size(width = 48.dp, height = 38.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(if (isPressed) Color.White.copy(alpha = 0.45f) else Color.White.copy(alpha = 0.16f))
+                .border(1.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(8.dp))
+                .pointerInput(target) {
+                    detectTapGestures(
+                        onPress = {
+                            isPressed = true
+                            sendColecoKeypadEvent(viewModel, target, pressed = true)
+                            try {
+                                tryAwaitRelease()
+                            } finally {
+                                isPressed = false
+                                sendColecoKeypadEvent(viewModel, target, pressed = false)
+                            }
+                        },
+                    )
+                },
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = label,
+            color = Color.White,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+private fun sendColecoKeypadEvent(
+    viewModel: BaseGameScreenViewModel,
+    target: ColecoKeypadTarget,
+    pressed: Boolean,
+) {
+    val retroView = viewModel.retroGameView.retroGameView ?: return
+    when (target) {
+        is ColecoKeypadTarget.Key -> {
+            val action = if (pressed) KeyEvent.ACTION_DOWN else KeyEvent.ACTION_UP
+            retroView.sendKeyEvent(action, target.keyCode)
+        }
+
+        is ColecoKeypadTarget.Analog -> {
+            retroView.sendMotionEvent(
+                GLRetroView.MOTION_SOURCE_ANALOG_LEFT,
+                if (pressed) target.x else 0f,
+                if (pressed) target.y else 0f,
+            )
         }
     }
 }

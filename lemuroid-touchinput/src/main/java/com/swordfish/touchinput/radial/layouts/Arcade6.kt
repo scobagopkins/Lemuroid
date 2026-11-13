@@ -59,21 +59,23 @@ fun PadKitScope.Arcade6Right(
                 trackPointers = false,
                 idsForegrounds =
                     persistentMapOf<Id.Key, @Composable (State<Boolean>) -> Unit>(
-                        Id.Key(KeyEvent.KEYCODE_BUTTON_X) to { LemuroidCentralButton(pressedState = it) },
-                        Id.Key(KeyEvent.KEYCODE_BUTTON_A) to { LemuroidCentralButton(pressedState = it) },
-                        Id.Key(KeyEvent.KEYCODE_BUTTON_B) to { LemuroidCentralButton(pressedState = it) },
-                        Id.Key(KeyEvent.KEYCODE_BUTTON_Y) to { LemuroidCentralButton(pressedState = it) },
+                        Id.Key(KeyEvent.KEYCODE_BUTTON_B) to { LemuroidCentralButton(pressedState = it, label = "1") },
+                        Id.Key(KeyEvent.KEYCODE_BUTTON_A) to { LemuroidCentralButton(pressedState = it, label = "2") },
+                        Id.Key(KeyEvent.KEYCODE_BUTTON_X) to { LemuroidCentralButton(pressedState = it, label = "4") },
+                        Id.Key(KeyEvent.KEYCODE_BUTTON_L1) to { LemuroidCentralButton(pressedState = it, label = "5") },
                     ),
             )
         },
         secondaryDials = {
             LemuroidControlButton(
                 modifier = Modifier.radialPosition(90f),
-                id = Id.Key(KeyEvent.KEYCODE_BUTTON_L1),
+                id = Id.Key(KeyEvent.KEYCODE_BUTTON_Y),
+                label = "3",
             )
             LemuroidControlButton(
                 modifier = Modifier.radialPosition(60f),
                 id = Id.Key(KeyEvent.KEYCODE_BUTTON_R1),
+                label = "6",
             )
             SecondaryButtonMenu(settings)
         },
@@ -85,10 +87,10 @@ private fun rememberCentralAnchorsForSixButtons(rotation: Float): PersistentList
     return remember(rotation) {
         buildCentral6ButtonsAnchors(
             rotation,
-            KeyEvent.KEYCODE_BUTTON_X,
-            KeyEvent.KEYCODE_BUTTON_Y,
             KeyEvent.KEYCODE_BUTTON_A,
             KeyEvent.KEYCODE_BUTTON_B,
+            KeyEvent.KEYCODE_BUTTON_L1,
+            KeyEvent.KEYCODE_BUTTON_X,
         )
     }
 }

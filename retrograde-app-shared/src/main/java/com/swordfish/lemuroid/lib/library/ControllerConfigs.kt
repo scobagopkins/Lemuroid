@@ -66,6 +66,19 @@ object ControllerConfigs {
                 ),
         )
 
+    val COLECO =
+        ControllerConfig(
+            "default",
+            R.string.controller_default,
+            TouchControllerID.COLECO,
+            mergeDPADAndLeftStickEvents = false,
+            tiltConfigurations =
+                listOf(
+                    TILT_CONFIGURATION_DISABLED,
+                    TILT_CONFIGURATION_CROSS,
+                ),
+        )
+
     val GENESIS_6 =
         ControllerConfig(
             "default_6",

@@ -10,6 +10,8 @@ import com.swordfish.touchinput.radial.layouts.Atari2600Left
 import com.swordfish.touchinput.radial.layouts.Atari2600Right
 import com.swordfish.touchinput.radial.layouts.Atari7800Left
 import com.swordfish.touchinput.radial.layouts.Atari7800Right
+import com.swordfish.touchinput.radial.layouts.ColecoLeft
+import com.swordfish.touchinput.radial.layouts.ColecoRight
 import com.swordfish.touchinput.radial.layouts.DOSLeft
 import com.swordfish.touchinput.radial.layouts.DOSRight
 import com.swordfish.touchinput.radial.layouts.DesmumeLeft
@@ -69,6 +71,7 @@ enum class TouchControllerID {
     GENESIS_6,
     ATARI2600,
     SMS,
+    COLECO,
     GG,
     ARCADE_4,
     ARCADE_6,
@@ -178,6 +181,12 @@ enum class TouchControllerID {
                     Config(
                         { modifier, settings -> SMSLeft(modifier, settings) },
                         { modifier, settings -> SMSRight(modifier, settings) },
+                    )
+
+                COLECO ->
+                    Config(
+                        { modifier, settings -> ColecoLeft(modifier, settings) },
+                        { modifier, settings -> ColecoRight(modifier, settings) },
                     )
 
                 GG ->

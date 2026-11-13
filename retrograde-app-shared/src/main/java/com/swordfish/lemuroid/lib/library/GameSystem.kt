@@ -913,8 +913,8 @@ data class GameSystem(
                                 hashMapOf(
                                     0 to
                                         arrayListOf(
-                                            ControllerConfigs.MAME_2003_4,
                                             ControllerConfigs.MAME_2003_6,
+                                            ControllerConfigs.MAME_2003_4,
                                         ),
                                 ),
                         ),
@@ -930,8 +930,8 @@ data class GameSystem(
                                 hashMapOf(
                                     0 to
                                         arrayListOf(
-                                            ControllerConfigs.MAME_2003_4,
                                             ControllerConfigs.MAME_2003_6,
+                                            ControllerConfigs.MAME_2003_4,
                                         ),
                                 ),
                         ),
@@ -960,7 +960,7 @@ data class GameSystem(
                                 ),
                             controllerConfigs =
                                 hashMapOf(
-                                    0 to arrayListOf(ControllerConfigs.SMS),
+                                    0 to arrayListOf(ControllerConfigs.COLECO),
                                 ),
                         ),
                     ),
