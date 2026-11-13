@@ -55,7 +55,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build APK (Free Bundle Release)
-        run: ./gradlew assembleFreeBundleRelease --stacktrace
+        run: ./gradlew assembleFreeBundleRelease --stacktrace -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g"
 
       - name: Rename APK
         run: |
