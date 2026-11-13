@@ -27,27 +27,24 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      - name: Download Gearcoleco, MAME 2003-Plus (latest) and MAME 2010 cores
+      - name: Download Gearcoleco, MAME 2003-Plus (latest) and MAME 2010 cores (arm64-v8a)
         run: |
           mkdir -p lemuroid-cores/bundled-cores/src/main/jniLibs/arm64-v8a
-          mkdir -p lemuroid-cores/bundled-cores/src/main/jniLibs/armeabi-v7a
 
-          for abi in arm64-v8a armeabi-v7a; do
-            # Gearcoleco (ColecoVision)
-            wget -q "https://buildbot.libretro.com/nightly/android/latest/${abi}/gearcoleco_libretro_android.so.zip" -O "/tmp/gearcoleco_${abi}.zip"
-            unzip -q -o "/tmp/gearcoleco_${abi}.zip" -d "/tmp/gearcoleco_${abi}/"
-            mv "/tmp/gearcoleco_${abi}/gearcoleco_libretro_android.so" "lemuroid-cores/bundled-cores/src/main/jniLibs/${abi}/libgearcoleco_libretro_android.so"
+          # Gearcoleco (ColecoVision)
+          wget -q "https://buildbot.libretro.com/nightly/android/latest/arm64-v8a/gearcoleco_libretro_android.so.zip" -O "/tmp/gearcoleco.zip"
+          unzip -q -o "/tmp/gearcoleco.zip" -d "/tmp/gearcoleco/"
+          mv "/tmp/gearcoleco/gearcoleco_libretro_android.so" "lemuroid-cores/bundled-cores/src/main/jniLibs/arm64-v8a/libgearcoleco_libretro_android.so"
 
-            # MAME 2010 (Sony ZN-1/ZN-2 sfex, sfex2p)
-            wget -q "https://buildbot.libretro.com/nightly/android/latest/${abi}/mame2010_libretro_android.so.zip" -O "/tmp/mame2010_${abi}.zip"
-            unzip -q -o "/tmp/mame2010_${abi}.zip" -d "/tmp/mame2010_${abi}/"
-            mv "/tmp/mame2010_${abi}/mame2010_libretro_android.so" "lemuroid-cores/bundled-cores/src/main/jniLibs/${abi}/libmame2010_libretro_android.so"
+          # MAME 2010 (Sony ZN-1/ZN-2 sfex, sfex2p)
+          wget -q "https://buildbot.libretro.com/nightly/android/latest/arm64-v8a/mame2010_libretro_android.so.zip" -O "/tmp/mame2010.zip"
+          unzip -q -o "/tmp/mame2010.zip" -d "/tmp/mame2010/"
+          mv "/tmp/mame2010/mame2010_libretro_android.so" "lemuroid-cores/bundled-cores/src/main/jniLibs/arm64-v8a/libmame2010_libretro_android.so"
 
-            # Update bundled MAME 2003-Plus to latest buildbot (has mips_dynarec & ZN-1/ZN-2 fixes)
-            wget -q "https://buildbot.libretro.com/nightly/android/latest/${abi}/mame2003_plus_libretro_android.so.zip" -O "/tmp/mame2003_plus_${abi}.zip"
-            unzip -q -o "/tmp/mame2003_plus_${abi}.zip" -d "/tmp/mame2003_plus_${abi}/"
-            mv "/tmp/mame2003_plus_${abi}/mame2003_plus_libretro_android.so" "lemuroid-cores/lemuroid_core_mame2003_plus/src/main/jniLibs/${abi}/libmame2003_plus_libretro_android.so"
-          done
+          # Update bundled MAME 2003-Plus to latest buildbot (has mips_dynarec & ZN-1/ZN-2 fixes)
+          wget -q "https://buildbot.libretro.com/nightly/android/latest/arm64-v8a/mame2003_plus_libretro_android.so.zip" -O "/tmp/mame2003_plus.zip"
+          unzip -q -o "/tmp/mame2003_plus.zip" -d "/tmp/mame2003_plus/"
+          mv "/tmp/mame2003_plus/mame2003_plus_libretro_android.so" "lemuroid-cores/lemuroid_core_mame2003_plus/src/main/jniLibs/arm64-v8a/libmame2003_plus_libretro_android.so"
 
           ls -lh lemuroid-cores/bundled-cores/src/main/jniLibs/arm64-v8a/lib*
 
@@ -57,11 +54,14 @@ jobs:
       - name: Build APK (Free Bundle Release)
         run: ./gradlew assembleFreeBundleRelease --stacktrace -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g"
 
-      - name: Rename APK
+      - name: Rename and Verify APK
         run: |
           mkdir -p dist
           cp lemuroid-app/build/outputs/apk/freeBundle/release/*.apk dist/Lemuroid-custom-zn-coleco.apk
           ls -lh dist/
+          BUILD_TOOLS=$(ls -d "${ANDROID_HOME:-$ANDROID_SDK_ROOT}"/build-tools/* | sort -V | tail -n 1)
+          "$BUILD_TOOLS/apksigner" verify --verbose dist/Lemuroid-custom-zn-coleco.apk
+          "$BUILD_TOOLS/aapt2" dump badging dist/Lemuroid-custom-zn-coleco.apk | head -n 5
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
@@ -72,15 +72,15 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: custom-v3
-          name: "Lemuroid with Sony ZN-1/ZN-2 & ColecoVision support (v3)"
+          tag_name: custom-v4
+          name: "Lemuroid Custom (arm64-v8a, Sony ZN-1/ZN-2 & ColecoVision, v4)"
           body: |
-            Custom build of Lemuroid (v3):
-            - Updated MAME 2003-Plus to latest buildbot (includes mips_dynarec option & ZN-1/ZN-2 fixes)
-            - Added MAME 2010 core option for Arcade/ZN-1/ZN-2 (sfex, sfex2p)
-            - Pre-cache companion ZN-1/ZN-2 BIOS & parent ROMs (coh1000c, coh3002c, sfex, sfex2, etc.)
-            - Fixed ColecoVision .zip ROM extraction to .col before passing to Gearcoleco
-            - Embedded ColecoVision OS-7 BIOS (coleco.rom / colecovision.rom)
+            Custom build of Lemuroid (v4, arm64-v8a):
+            - Unique applicationId (com.swordfish.lemuroid.custom) & bumped versionCode (253)
+            - Verified with apksigner
+            - Updated MAME 2003-Plus (latest buildbot, mips_dynarec disabled) + MAME 2010 core
+            - Pre-cached ZN-1/ZN-2 companion BIOS/parent ROMs
+            - Gearcoleco + .zip extraction to .col + embedded OS-7 BIOS
           files: dist/Lemuroid-custom-zn-coleco.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
