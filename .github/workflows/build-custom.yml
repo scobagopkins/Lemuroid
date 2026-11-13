@@ -27,21 +27,28 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      - name: Download Gearcoleco core (ColecoVision)
+      - name: Download Gearcoleco, MAME 2003-Plus (latest) and MAME 2010 cores
         run: |
           mkdir -p lemuroid-cores/bundled-cores/src/main/jniLibs/arm64-v8a
           mkdir -p lemuroid-cores/bundled-cores/src/main/jniLibs/armeabi-v7a
-          
-          # arm64-v8a
-          wget -q https://buildbot.libretro.com/nightly/android/latest/arm64-v8a/gearcoleco_libretro_android.so.zip -O /tmp/gearcoleco_arm64.zip
-          unzip -q -o /tmp/gearcoleco_arm64.zip -d /tmp/gearcoleco_arm64/
-          mv /tmp/gearcoleco_arm64/gearcoleco_libretro_android.so lemuroid-cores/bundled-cores/src/main/jniLibs/arm64-v8a/libgearcoleco_libretro_android.so
-          
-          # armeabi-v7a
-          wget -q https://buildbot.libretro.com/nightly/android/latest/armeabi-v7a/gearcoleco_libretro_android.so.zip -O /tmp/gearcoleco_armv7.zip
-          unzip -q -o /tmp/gearcoleco_armv7.zip -d /tmp/gearcoleco_armv7/
-          mv /tmp/gearcoleco_armv7/gearcoleco_libretro_android.so lemuroid-cores/bundled-cores/src/main/jniLibs/armeabi-v7a/libgearcoleco_libretro_android.so
-          
+
+          for abi in arm64-v8a armeabi-v7a; do
+            # Gearcoleco (ColecoVision)
+            wget -q "https://buildbot.libretro.com/nightly/android/latest/${abi}/gearcoleco_libretro_android.so.zip" -O "/tmp/gearcoleco_${abi}.zip"
+            unzip -q -o "/tmp/gearcoleco_${abi}.zip" -d "/tmp/gearcoleco_${abi}/"
+            mv "/tmp/gearcoleco_${abi}/gearcoleco_libretro_android.so" "lemuroid-cores/bundled-cores/src/main/jniLibs/${abi}/libgearcoleco_libretro_android.so"
+
+            # MAME 2010 (Sony ZN-1/ZN-2 sfex, sfex2p)
+            wget -q "https://buildbot.libretro.com/nightly/android/latest/${abi}/mame2010_libretro_android.so.zip" -O "/tmp/mame2010_${abi}.zip"
+            unzip -q -o "/tmp/mame2010_${abi}.zip" -d "/tmp/mame2010_${abi}/"
+            mv "/tmp/mame2010_${abi}/mame2010_libretro_android.so" "lemuroid-cores/bundled-cores/src/main/jniLibs/${abi}/libmame2010_libretro_android.so"
+
+            # Update bundled MAME 2003-Plus to latest buildbot (has mips_dynarec & ZN-1/ZN-2 fixes)
+            wget -q "https://buildbot.libretro.com/nightly/android/latest/${abi}/mame2003_plus_libretro_android.so.zip" -O "/tmp/mame2003_plus_${abi}.zip"
+            unzip -q -o "/tmp/mame2003_plus_${abi}.zip" -d "/tmp/mame2003_plus_${abi}/"
+            mv "/tmp/mame2003_plus_${abi}/mame2003_plus_libretro_android.so" "lemuroid-cores/lemuroid_core_mame2003_plus/src/main/jniLibs/${abi}/libmame2003_plus_libretro_android.so"
+          done
+
           ls -lh lemuroid-cores/bundled-cores/src/main/jniLibs/arm64-v8a/lib*
 
       - name: Grant execute permission for gradlew
@@ -65,14 +72,15 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: custom-v2
-          name: "Lemuroid with Sony ZN-1 & ColecoVision support (v2)"
+          tag_name: custom-v3
+          name: "Lemuroid with Sony ZN-1/ZN-2 & ColecoVision support (v3)"
           body: |
-            Custom build of Lemuroid (v2):
-            - Auto-embedded ColecoVision BIOS (OS-7) in internal assets (no manual coleco.rom placement needed)
-            - Fixed ColecoVision BIOS detection in BiosManager
-            - Disabled MIPS Dynarec in MAME 2003-Plus to prevent ARM boot-hangs on green screen
-            - Enabled skip_disclaimer and skip_warnings in MAME 2003-Plus
+            Custom build of Lemuroid (v3):
+            - Updated MAME 2003-Plus to latest buildbot (includes mips_dynarec option & ZN-1/ZN-2 fixes)
+            - Added MAME 2010 core option for Arcade/ZN-1/ZN-2 (sfex, sfex2p)
+            - Pre-cache companion ZN-1/ZN-2 BIOS & parent ROMs (coh1000c, coh3002c, sfex, sfex2, etc.)
+            - Fixed ColecoVision .zip ROM extraction to .col before passing to Gearcoleco
+            - Embedded ColecoVision OS-7 BIOS (coleco.rom / colecovision.rom)
           files: dist/Lemuroid-custom-zn-coleco.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

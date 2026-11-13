@@ -918,6 +918,18 @@ data class GameSystem(
                                         ),
                                 ),
                         ),
+                        SystemCoreConfig(
+                            CoreID.MAME2010,
+                            statesSupported = false,
+                            controllerConfigs =
+                                hashMapOf(
+                                    0 to
+                                        arrayListOf(
+                                            ControllerConfigs.MAME_2003_4,
+                                            ControllerConfigs.MAME_2003_6,
+                                        ),
+                                ),
+                        ),
                     ),
                     uniqueExtensions = listOf(),
                     supportedExtensions = listOf("zip"),

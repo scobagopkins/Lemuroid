@@ -21,7 +21,7 @@ class DirectoriesManager(private val appContext: Context) {
             try {
                 listOf("colecovision.rom", "coleco.rom").forEach { name ->
                     val dest = File(this, name)
-                    if (!dest.exists()) {
+                    if (!dest.exists() || dest.length() != 8192L) {
                         appContext.assets.open(name).use { input ->
                             dest.outputStream().use { output ->
                                 input.copyTo(output)

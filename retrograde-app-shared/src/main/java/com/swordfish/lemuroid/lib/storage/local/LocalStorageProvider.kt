@@ -26,6 +26,8 @@ import androidx.leanback.preference.LeanbackPreferenceFragment
 import com.swordfish.lemuroid.common.kotlin.extractEntryToFile
 import com.swordfish.lemuroid.common.kotlin.isZipped
 import com.swordfish.lemuroid.lib.R
+import com.swordfish.lemuroid.common.kotlin.writeToFile
+import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.library.db.entity.DataFile
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
@@ -96,6 +98,24 @@ class LocalStorageProvider(
     private fun getGameRom(game: Game): File {
         val gamePath = Uri.parse(game.fileUri).path
         val originalFile = File(gamePath)
+        if (originalFile.isZipped() && game.systemId == SystemID.COLECO.dbname) {
+            val baseCacheFile = GameCacheUtils.getCacheFileForGame(LOCAL_STORAGE_CACHE_SUBFOLDER, context, game)
+            val targetName = "${game.fileName.substringBeforeLast('.')}.col"
+            val cacheFile = File(baseCacheFile.parentFile, targetName)
+            if (cacheFile.exists() && cacheFile.length() > 0L) {
+                return cacheFile
+            }
+            ZipInputStream(originalFile.inputStream()).use { zis ->
+                var entry = zis.nextEntry
+                while (entry != null) {
+                    if (!entry.isDirectory) {
+                        zis.writeToFile(cacheFile)
+                        return cacheFile
+                    }
+                    entry = zis.nextEntry
+                }
+            }
+        }
         if (!originalFile.isZipped() || originalFile.name == game.fileName) {
             return originalFile
         }

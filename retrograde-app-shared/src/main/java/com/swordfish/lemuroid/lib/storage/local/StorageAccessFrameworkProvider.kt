@@ -9,6 +9,7 @@ import com.swordfish.lemuroid.common.kotlin.extractEntryToFile
 import com.swordfish.lemuroid.common.kotlin.isZipped
 import com.swordfish.lemuroid.common.kotlin.writeToFile
 import com.swordfish.lemuroid.lib.R
+import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.library.db.entity.DataFile
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
@@ -133,9 +134,11 @@ class StorageAccessFrameworkProvider(private val context: Context) : StorageProv
         val originalDocumentUri = Uri.parse(game.fileUri)
         val originalDocument = DocumentFile.fromSingleUri(context, originalDocumentUri)!!
 
+        val forceExtractZip = originalDocument.isZipped() && game.systemId == SystemID.COLECO.dbname
         val isZipped = originalDocument.isZipped() && originalDocument.name != game.fileName
 
         return when {
+            forceExtractZip && dataFiles.isEmpty() -> getColecoRomFilesZipped(game, originalDocument)
             isZipped && dataFiles.isEmpty() -> getGameRomFilesZipped(game, originalDocument)
             allowVirtualFiles -> getGameRomFilesVirtual(game, dataFiles)
             else -> getGameRomFilesStandard(game, dataFiles, originalDocument)
@@ -150,6 +153,44 @@ class StorageAccessFrameworkProvider(private val context: Context) : StorageProv
         val gameEntry = getGameRomStandard(game, originalDocument)
         val dataEntries = dataFiles.map { getDataFileStandard(game, it) }
         return RomFiles.Standard(listOf(gameEntry) + dataEntries)
+    }
+
+    private fun getColecoRomFilesZipped(
+        game: Game,
+        originalDocument: DocumentFile,
+    ): RomFiles {
+        val baseCacheFile = GameCacheUtils.getCacheFileForGame(SAF_CACHE_SUBFOLDER, context, game)
+        val targetName = "${game.fileName.substringBeforeLast('.')}.col"
+        val cacheFile = File(baseCacheFile.parentFile, targetName)
+        if (cacheFile.exists() && cacheFile.length() > 0L) {
+            return RomFiles.Standard(listOf(cacheFile))
+        }
+
+        ZipInputStream(context.contentResolver.openInputStream(originalDocument.uri)).use { zis ->
+            var entry = zis.nextEntry
+            var fallbackEntryName: String? = null
+            while (entry != null) {
+                if (!entry.isDirectory) {
+                    val lower = entry.name.lowercase()
+                    if (lower.endsWith(".col") || lower.endsWith(".rom") || lower.endsWith(".bin") || lower.endsWith(".cv")) {
+                        zis.writeToFile(cacheFile)
+                        return RomFiles.Standard(listOf(cacheFile))
+                    }
+                    if (fallbackEntryName == null) {
+                        fallbackEntryName = entry.name
+                    }
+                }
+                entry = zis.nextEntry
+            }
+            if (fallbackEntryName != null) {
+                ZipInputStream(context.contentResolver.openInputStream(originalDocument.uri)).use { zis2 ->
+                    zis2.extractEntryToFile(fallbackEntryName, cacheFile)
+                    return RomFiles.Standard(listOf(cacheFile))
+                }
+            }
+        }
+
+        return getGameRomFilesStandard(game, emptyList(), originalDocument)
     }
 
     private fun getGameRomFilesZipped(

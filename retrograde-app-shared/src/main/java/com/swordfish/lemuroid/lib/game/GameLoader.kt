@@ -28,6 +28,7 @@ import com.swordfish.lemuroid.lib.library.CoreID
 import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.LemuroidLibrary
 import com.swordfish.lemuroid.lib.library.SystemCoreConfig
+import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.library.db.RetrogradeDatabase
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.migration.DesmumeMigrationHandler
@@ -88,6 +89,21 @@ class GameLoader(
                 val missingBiosFiles = biosManager.getMissingBiosFiles(systemCoreConfig, game)
                 if (missingBiosFiles.isNotEmpty()) {
                     throw GameLoaderException(GameLoaderError.MissingBiosFiles(missingBiosFiles))
+                }
+
+                if (system.id == SystemID.MAME2003PLUS) {
+                    runCatching {
+                        val companions =
+                            retrogradeDatabase.gameDao().selectBySystemAndFileNames(
+                                system.id.dbname,
+                                ZN_COMPANION_ROMS,
+                            )
+                        companions
+                            .filter { it.id != game.id }
+                            .forEach { companion ->
+                                lemuroidLibrary.getGameFiles(companion, emptyList(), false)
+                            }
+                    }.onFailure { Timber.w(it, "Failed to pre-cache MAME companion ROMs") }
                 }
 
                 val gameFiles =
@@ -168,6 +184,25 @@ class GameLoader(
         return files
             .flatMap { it.walkBottomUp() }
             .firstOrNull { it.name == coreID.libretroFileName }
+    }
+
+    companion object {
+        private val ZN_COMPANION_ROMS =
+            listOf(
+                "coh1000c.zip",
+                "coh3002c.zip",
+                "cpzn1.zip",
+                "cpzn2.zip",
+                "qsound.zip",
+                "sfex.zip",
+                "sfexp.zip",
+                "sfex2.zip",
+                "rvschool.zip",
+                "starglad.zip",
+                "ts2.zip",
+                "plsmaswd.zip",
+                "glpracr.zip",
+            )
     }
 
     @Suppress("ArrayInDataClass")
