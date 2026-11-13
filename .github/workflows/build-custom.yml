@@ -27,6 +27,19 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
+      - name: Generate release keystore (non-debug cert)
+        run: |
+          rm -f release.jks
+          keytool -genkeypair -v \
+            -keystore release.jks \
+            -alias lemuroid \
+            -storepass lemuroid \
+            -keypass lemuroid \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=Lemuroid Custom, O=Lemuroid, C=US"
+
       - name: Download Gearcoleco, MAME 2003-Plus (latest) and MAME 2010 cores (arm64-v8a)
         run: |
           mkdir -p lemuroid-cores/bundled-cores/src/main/jniLibs/arm64-v8a
@@ -54,14 +67,22 @@ jobs:
       - name: Build APK (Free Bundle Release)
         run: ./gradlew assembleFreeBundleRelease --stacktrace -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g"
 
-      - name: Rename and Verify APK
+      - name: Rename, Sign (v1+v2+v3) and Verify APK
         run: |
           mkdir -p dist
           cp lemuroid-app/build/outputs/apk/freeBundle/release/*.apk dist/Lemuroid-custom-zn-coleco.apk
-          ls -lh dist/
           BUILD_TOOLS=$(ls -d "${ANDROID_HOME:-$ANDROID_SDK_ROOT}"/build-tools/* | sort -V | tail -n 1)
+          "$BUILD_TOOLS/apksigner" sign \
+            --ks release.jks \
+            --ks-key-alias lemuroid \
+            --ks-pass pass:lemuroid \
+            --key-pass pass:lemuroid \
+            --v1-signing-enabled true \
+            --v2-signing-enabled true \
+            --v3-signing-enabled true \
+            dist/Lemuroid-custom-zn-coleco.apk
           "$BUILD_TOOLS/apksigner" verify --verbose dist/Lemuroid-custom-zn-coleco.apk
-          "$BUILD_TOOLS/aapt2" dump badging dist/Lemuroid-custom-zn-coleco.apk | head -n 5
+          ls -lh dist/
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
@@ -72,12 +93,12 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: custom-v4
-          name: "Lemuroid Custom (arm64-v8a, Sony ZN-1/ZN-2 & ColecoVision, v4)"
+          tag_name: custom-v5
+          name: "Lemuroid Custom (arm64-v8a, Release-signed, v5)"
           body: |
-            Custom build of Lemuroid (v4, arm64-v8a):
-            - Unique applicationId (com.swordfish.lemuroid.custom) & bumped versionCode (253)
-            - Verified with apksigner
+            Custom build of Lemuroid (v5, arm64-v8a):
+            - Signed with non-debug release certificate (v1+v2+v3)
+            - Unique applicationId (com.swordfish.lemuroid.custom) & versionCode 253
             - Updated MAME 2003-Plus (latest buildbot, mips_dynarec disabled) + MAME 2010 core
             - Pre-cached ZN-1/ZN-2 companion BIOS/parent ROMs
             - Gearcoleco + .zip extraction to .col + embedded OS-7 BIOS
