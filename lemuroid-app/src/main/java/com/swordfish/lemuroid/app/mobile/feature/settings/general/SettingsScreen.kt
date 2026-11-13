@@ -206,9 +206,15 @@ private fun RomsSettings(
 
     val currentDirectoryName =
         remember(state.currentDirectory) {
-            runCatching {
-                DocumentFile.fromTreeUri(context, Uri.parse(currentDirectory))?.name
-            }.getOrNull() ?: emptyDirectory
+            if (currentDirectory.isBlank()) {
+                emptyDirectory
+            } else if (currentDirectory.startsWith("content://")) {
+                runCatching {
+                    DocumentFile.fromTreeUri(context, Uri.parse(currentDirectory))?.name
+                }.getOrNull() ?: currentDirectory
+            } else {
+                currentDirectory
+            }
         }
 
     LemuroidCardSettingsGroup(title = { Text(text = stringResource(id = R.string.roms)) }) {

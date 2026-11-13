@@ -105,14 +105,27 @@ class LocalStorageProvider(
             if (cacheFile.exists() && cacheFile.length() > 0L) {
                 return cacheFile
             }
+            var fallbackEntryName: String? = null
             ZipInputStream(originalFile.inputStream()).use { zis ->
                 var entry = zis.nextEntry
                 while (entry != null) {
                     if (!entry.isDirectory) {
-                        zis.writeToFile(cacheFile)
-                        return cacheFile
+                        val lower = entry.name.lowercase()
+                        if (lower.endsWith(".col") || lower.endsWith(".rom") || lower.endsWith(".bin") || lower.endsWith(".cv")) {
+                            zis.writeToFile(cacheFile)
+                            return cacheFile
+                        }
+                        if (fallbackEntryName == null) {
+                            fallbackEntryName = entry.name
+                        }
                     }
                     entry = zis.nextEntry
+                }
+            }
+            if (fallbackEntryName != null) {
+                ZipInputStream(originalFile.inputStream()).use { zis2 ->
+                    zis2.extractEntryToFile(fallbackEntryName!!, cacheFile)
+                    return cacheFile
                 }
             }
         }

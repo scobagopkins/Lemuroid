@@ -15,7 +15,20 @@ import java.util.Locale
 class LibretroDBMetadataProvider(private val ovgdbManager: LibretroDBManager) :
     GameMetadataProvider {
     companion object {
-        private val THUMB_REPLACE = Regex("[&*/:`<>?\\\\|]")
+        private val THUMB_REPLACE = Regex("[&*/:`<>?\\|]")
+        private val BIOS_AND_COMPANION_FILES =
+            setOf(
+                "coleco.rom",
+                "colecovision.rom",
+                "cpzn1.zip",
+                "cpzn2.zip",
+                "coh1000c.zip",
+                "coh1002c.zip",
+                "coh3002c.zip",
+                "qsound.zip",
+                "neogeo.zip",
+                "pgm.zip",
+            )
     }
 
     private val sortedSystemIds: List<String> by lazy {
@@ -25,6 +38,10 @@ class LibretroDBMetadataProvider(private val ovgdbManager: LibretroDBManager) :
     }
 
     override suspend fun retrieveMetadata(storageFile: StorageFile): GameMetadata? {
+        if (storageFile.name.lowercase(Locale.getDefault()) in BIOS_AND_COMPANION_FILES) {
+            return null
+        }
+
         val db = ovgdbManager.dbInstance
 
         Timber.d("Looking metadata for file: $storageFile")
@@ -103,8 +120,8 @@ class LibretroDBMetadataProvider(private val ovgdbManager: LibretroDBManager) :
     ): Boolean {
         val p = parent?.toLowerCase(Locale.getDefault()) ?: return false
         if (p.contains(dbname)) return true
-        if (dbname == "mame2003plus" && (p.contains("mame") || p.contains("arcade"))) return true
-        if (dbname == "coleco" && p.contains("coleco")) return true
+        if (dbname == "mame2003plus" && (p.contains("mame") || p.contains("arcade") || p.contains("/zn") || p.endsWith("zn"))) return true
+        if (dbname == "coleco" && (p.contains("coleco") || p.contains("vcol"))) return true
         return false
     }
 

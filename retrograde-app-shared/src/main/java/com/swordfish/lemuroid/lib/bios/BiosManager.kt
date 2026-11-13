@@ -45,14 +45,7 @@ class BiosManager(private val directoriesManager: DirectoriesManager) {
     }
 
     fun deleteBiosBefore(timestampMs: Long) {
-        Timber.i("Pruning old bios files")
-        SUPPORTED_BIOS
-            .map { File(directoriesManager.getSystemDirectory(), it.libretroFileName) }
-            .filter { it.lastModified() < normalizeTimestamp(timestampMs) }
-            .forEach {
-                Timber.d("Pruning old bios file: ${it.path}")
-                it.safeDelete()
-            }
+        // Keep already imported BIOS files across folder changes
     }
 
     @Deprecated("Use the suspend variant")
@@ -95,6 +88,10 @@ class BiosManager(private val directoriesManager: DirectoriesManager) {
 
     private fun findByName(storageFile: StorageFile): Bios? {
         return nameLookup[storageFile.name]
+            ?: SUPPORTED_BIOS.firstOrNull {
+                it.libretroFileName.equals(storageFile.name, ignoreCase = true) ||
+                    it.externalName.equals(storageFile.name, ignoreCase = true)
+            }
     }
 
     private fun normalizeTimestamp(timestamp: Long) = (timestamp / 1000) * 1000

@@ -38,7 +38,11 @@ class StorageAccessFrameworkProvider(private val context: Context) : StorageProv
 
     override fun listBaseStorageFiles(): Flow<List<BaseStorageFile>> {
         return getExternalFolder()?.let { folder ->
-            traverseDirectoryEntries(Uri.parse(folder))
+            if (folder.startsWith("content://")) {
+                traverseDirectoryEntries(Uri.parse(folder))
+            } else {
+                emptyFlow()
+            }
         } ?: emptyFlow()
     }
 

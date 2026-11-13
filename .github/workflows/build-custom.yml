@@ -77,7 +77,7 @@ jobs:
       - name: Rename, Sign (v1+v2+v3) and Verify APK
         run: |
           mkdir -p dist
-          cp lemuroid-app/build/outputs/apk/freeBundle/release/*.apk dist/Lemuroid-custom-zn-coleco.apk
+          cp lemuroid-app/build/outputs/apk/freeBundle/release/*.apk dist/Lemuroid-custom-v8.apk
           BUILD_TOOLS=$(ls -d "${ANDROID_HOME:-$ANDROID_SDK_ROOT}"/build-tools/* | sort -V | tail -n 1)
           "$BUILD_TOOLS/apksigner" sign \
             --ks release.jks \
@@ -87,21 +87,21 @@ jobs:
             --v1-signing-enabled true \
             --v2-signing-enabled true \
             --v3-signing-enabled true \
-            dist/Lemuroid-custom-zn-coleco.apk
-          "$BUILD_TOOLS/apksigner" verify --verbose dist/Lemuroid-custom-zn-coleco.apk
+            dist/Lemuroid-custom-v8.apk
+          "$BUILD_TOOLS/apksigner" verify --verbose dist/Lemuroid-custom-v8.apk
           ls -lh dist/
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Lemuroid-custom-zn-coleco
-          path: dist/Lemuroid-custom-zn-coleco.apk
+          path: dist/Lemuroid-custom-v8.apk
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: custom-v7
-          name: "Lemuroid Custom (arm64-v8a, Release-signed, v7)"
+          tag_name: custom-v8
+          name: "Lemuroid Custom v8 (arm64-v8a, Full Folder Access + ZN-1/ZN-2 + Coleco)"
           body: |
             Custom build of Lemuroid (v5, arm64-v8a):
             - Signed with non-debug release certificate (v1+v2+v3)
@@ -109,6 +109,6 @@ jobs:
             - Updated MAME 2003-Plus (latest buildbot, mips_dynarec disabled) + MAME 2010 core
             - Pre-cached ZN-1/ZN-2 companion BIOS/parent ROMs
             - Gearcoleco + .zip extraction to .col + embedded OS-7 BIOS
-          files: dist/Lemuroid-custom-zn-coleco.apk
+          files: dist/Lemuroid-custom-v8.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
