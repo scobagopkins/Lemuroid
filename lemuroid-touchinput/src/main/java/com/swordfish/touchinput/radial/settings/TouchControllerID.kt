@@ -6,6 +6,10 @@ import com.swordfish.touchinput.radial.layouts.Arcade4Left
 import com.swordfish.touchinput.radial.layouts.Arcade4Right
 import com.swordfish.touchinput.radial.layouts.Arcade6Left
 import com.swordfish.touchinput.radial.layouts.Arcade6Right
+import com.swordfish.touchinput.radial.layouts.ArcadeFightstickLeft
+import com.swordfish.touchinput.radial.layouts.ArcadeFightstickRight
+import com.swordfish.touchinput.radial.layouts.ArcadePS1Left
+import com.swordfish.touchinput.radial.layouts.ArcadePS1Right
 import com.swordfish.touchinput.radial.layouts.Atari2600Left
 import com.swordfish.touchinput.radial.layouts.Atari2600Right
 import com.swordfish.touchinput.radial.layouts.Atari7800Left
@@ -75,6 +79,8 @@ enum class TouchControllerID {
     GG,
     ARCADE_4,
     ARCADE_6,
+    ARCADE_PS1,
+    ARCADE_FIGHTSTICK,
     LYNX,
     ATARI7800,
     PCE,
@@ -205,6 +211,18 @@ enum class TouchControllerID {
                     Config(
                         { modifier, settings -> Arcade6Left(modifier, settings) },
                         { modifier, settings -> Arcade6Right(modifier, settings) },
+                    )
+
+                ARCADE_PS1 ->
+                    Config(
+                        { modifier, settings -> ArcadePS1Left(modifier, settings) },
+                        { modifier, settings -> ArcadePS1Right(modifier, settings) },
+                    )
+
+                ARCADE_FIGHTSTICK ->
+                    Config(
+                        { modifier, settings -> ArcadeFightstickLeft(modifier, settings) },
+                        { modifier, settings -> ArcadeFightstickRight(modifier, settings) },
                     )
 
                 LYNX ->

@@ -880,7 +880,20 @@ data class GameSystem(
                                 ),
                             controllerConfigs =
                                 hashMapOf(
-                                    0 to arrayListOf(ControllerConfigs.FB_NEO_4, ControllerConfigs.FB_NEO_6),
+                                    0 to
+                                        arrayListOf(
+                                            ControllerConfigs.FB_NEO_PS1,
+                                            ControllerConfigs.FB_NEO_FIGHTSTICK,
+                                            ControllerConfigs.FB_NEO_6,
+                                            ControllerConfigs.FB_NEO_4,
+                                        ),
+                                    1 to
+                                        arrayListOf(
+                                            ControllerConfigs.FB_NEO_PS1,
+                                            ControllerConfigs.FB_NEO_FIGHTSTICK,
+                                            ControllerConfigs.FB_NEO_6,
+                                            ControllerConfigs.FB_NEO_4,
+                                        ),
                                 ),
                         ),
                     ),
@@ -913,6 +926,15 @@ data class GameSystem(
                                 hashMapOf(
                                     0 to
                                         arrayListOf(
+                                            ControllerConfigs.MAME_2003_PS1,
+                                            ControllerConfigs.MAME_2003_FIGHTSTICK,
+                                            ControllerConfigs.MAME_2003_6,
+                                            ControllerConfigs.MAME_2003_4,
+                                        ),
+                                    1 to
+                                        arrayListOf(
+                                            ControllerConfigs.MAME_2003_PS1,
+                                            ControllerConfigs.MAME_2003_FIGHTSTICK,
                                             ControllerConfigs.MAME_2003_6,
                                             ControllerConfigs.MAME_2003_4,
                                         ),

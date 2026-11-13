@@ -250,12 +250,68 @@ object ControllerConfigs {
                 ),
         )
 
+    val FB_NEO_PS1 =
+        ControllerConfig(
+            "psone",
+            R.string.controller_arcade_psone,
+            TouchControllerID.ARCADE_PS1,
+            mergeDPADAndLeftStickEvents = true,
+            libretroDescriptor = "Modern",
+            tiltConfigurations =
+                listOf(
+                    TILT_CONFIGURATION_DISABLED,
+                    TILT_CONFIGURATION_CROSS,
+                ),
+        )
+
+    val FB_NEO_FIGHTSTICK =
+        ControllerConfig(
+            "fightstick",
+            R.string.controller_arcade_fightstick,
+            TouchControllerID.ARCADE_FIGHTSTICK,
+            mergeDPADAndLeftStickEvents = true,
+            libretroDescriptor = "Modern",
+            tiltConfigurations =
+                listOf(
+                    TILT_CONFIGURATION_DISABLED,
+                    TILT_CONFIGURATION_CROSS,
+                ),
+        )
+
     val MAME_2003_6 =
         ControllerConfig(
             "default_6",
             R.string.controller_arcade_6,
             TouchControllerID.ARCADE_6,
             mergeDPADAndLeftStickEvents = true,
+            tiltConfigurations =
+                listOf(
+                    TILT_CONFIGURATION_DISABLED,
+                    TILT_CONFIGURATION_CROSS,
+                ),
+        )
+
+    val MAME_2003_PS1 =
+        ControllerConfig(
+            "psone",
+            R.string.controller_arcade_psone,
+            TouchControllerID.ARCADE_PS1,
+            mergeDPADAndLeftStickEvents = true,
+            libretroDescriptor = "Fightstick",
+            tiltConfigurations =
+                listOf(
+                    TILT_CONFIGURATION_DISABLED,
+                    TILT_CONFIGURATION_CROSS,
+                ),
+        )
+
+    val MAME_2003_FIGHTSTICK =
+        ControllerConfig(
+            "fightstick",
+            R.string.controller_arcade_fightstick,
+            TouchControllerID.ARCADE_FIGHTSTICK,
+            mergeDPADAndLeftStickEvents = true,
+            libretroDescriptor = "Fightstick",
             tiltConfigurations =
                 listOf(
                     TILT_CONFIGURATION_DISABLED,
