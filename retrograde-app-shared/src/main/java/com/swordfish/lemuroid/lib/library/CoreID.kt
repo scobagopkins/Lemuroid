@@ -66,10 +66,10 @@ enum class CoreID(
         "MAME2003 Plus",
         "libmame2003_plus_libretro_android.so",
     ),
-    MAME2010(
-        "mame2010",
-        "MAME 2010",
-        "libmame2010_libretro_android.so",
+    MAME2003(
+        "mame2003",
+        "MAME 2003",
+        "libmame2003_libretro_android.so",
     ),
     DESMUME(
         "desmume",

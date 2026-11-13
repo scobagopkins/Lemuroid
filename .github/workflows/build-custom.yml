@@ -49,10 +49,10 @@ jobs:
           unzip -q -o "/tmp/gearcoleco.zip" -d "/tmp/gearcoleco/"
           mv "/tmp/gearcoleco/gearcoleco_libretro_android.so" "lemuroid-cores/bundled-cores/src/main/jniLibs/arm64-v8a/libgearcoleco_libretro_android.so"
 
-          # MAME 2010 (Sony ZN-1/ZN-2 sfex, sfex2p)
-          wget -q "https://buildbot.libretro.com/nightly/android/latest/arm64-v8a/mame2010_libretro_android.so.zip" -O "/tmp/mame2010.zip"
-          unzip -q -o "/tmp/mame2010.zip" -d "/tmp/mame2010/"
-          mv "/tmp/mame2010/mame2010_libretro_android.so" "lemuroid-cores/bundled-cores/src/main/jniLibs/arm64-v8a/libmame2010_libretro_android.so"
+          # MAME 2003 (Sony ZN-1/ZN-2 MAME 0.78 ROMsets)
+          wget -q "https://buildbot.libretro.com/nightly/android/latest/arm64-v8a/mame2003_libretro_android.so.zip" -O "/tmp/mame2003.zip"
+          unzip -q -o "/tmp/mame2003.zip" -d "/tmp/mame2003/"
+          mv "/tmp/mame2003/mame2003_libretro_android.so" "lemuroid-cores/bundled-cores/src/main/jniLibs/arm64-v8a/libmame2003_libretro_android.so"
 
           # Update bundled MAME 2003-Plus to latest buildbot (has mips_dynarec & ZN-1/ZN-2 fixes)
           wget -q "https://buildbot.libretro.com/nightly/android/latest/arm64-v8a/mame2003_plus_libretro_android.so.zip" -O "/tmp/mame2003_plus.zip"
@@ -93,8 +93,8 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: custom-v5
-          name: "Lemuroid Custom (arm64-v8a, Release-signed, v5)"
+          tag_name: custom-v6
+          name: "Lemuroid Custom (arm64-v8a, Release-signed, v6)"
           body: |
             Custom build of Lemuroid (v5, arm64-v8a):
             - Signed with non-debug release certificate (v1+v2+v3)

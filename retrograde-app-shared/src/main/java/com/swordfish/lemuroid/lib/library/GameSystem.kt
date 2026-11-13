@@ -919,7 +919,12 @@ data class GameSystem(
                                 ),
                         ),
                         SystemCoreConfig(
-                            CoreID.MAME2010,
+                            CoreID.MAME2003,
+                            defaultSettings =
+                                listOf(
+                                    CoreVariable("mame2003_skip_disclaimer", "enabled"),
+                                    CoreVariable("mame2003_skip_warnings", "enabled"),
+                                ),
                             statesSupported = false,
                             controllerConfigs =
                                 hashMapOf(

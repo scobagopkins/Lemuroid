@@ -197,11 +197,19 @@ abstract class BaseGameActivity : ImmersiveActivity() {
                 this.putExtra(GameMenuContract.EXTRA_ADVANCED_CORE_OPTIONS, advancedOptions.toTypedArray())
                 this.putExtra(
                     GameMenuContract.EXTRA_CURRENT_DISK,
-                    baseGameScreenViewModel.retroGameView.retroGameView?.getCurrentDisk() ?: 0,
+                    if (system.hasMultiDiskSupport) {
+                        baseGameScreenViewModel.retroGameView.retroGameView?.getCurrentDisk() ?: 0
+                    } else {
+                        0
+                    },
                 )
                 this.putExtra(
                     GameMenuContract.EXTRA_DISKS,
-                    baseGameScreenViewModel.retroGameView.retroGameView?.getAvailableDisks() ?: 0,
+                    if (system.hasMultiDiskSupport) {
+                        baseGameScreenViewModel.retroGameView.retroGameView?.getAvailableDisks() ?: 0
+                    } else {
+                        0
+                    },
                 )
                 this.putExtra(GameMenuContract.EXTRA_GAME, game)
                 this.putExtra(GameMenuContract.EXTRA_SYSTEM_CORE_CONFIG, systemCoreConfig)

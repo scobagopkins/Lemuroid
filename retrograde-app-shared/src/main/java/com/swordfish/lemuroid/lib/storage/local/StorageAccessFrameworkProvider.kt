@@ -151,8 +151,51 @@ class StorageAccessFrameworkProvider(private val context: Context) : StorageProv
         originalDocument: DocumentFile,
     ): RomFiles {
         val gameEntry = getGameRomStandard(game, originalDocument)
+        if (game.systemId == SystemID.MAME2003PLUS.dbname) {
+            cacheArcadeCompanionZips(originalDocument.uri, gameEntry.parentFile)
+        }
         val dataEntries = dataFiles.map { getDataFileStandard(game, it) }
         return RomFiles.Standard(listOf(gameEntry) + dataEntries)
+    }
+
+    private fun cacheArcadeCompanionZips(
+        gameDocumentUri: Uri,
+        cacheDir: File?,
+    ) {
+        if (cacheDir == null) return
+        val treeUri = getExternalFolder()?.let { Uri.parse(it) } ?: return
+        runCatching {
+            val docId = DocumentsContract.getDocumentId(gameDocumentUri)
+            val parentDocId =
+                if ('/' in docId) {
+                    docId.substringBeforeLast('/')
+                } else {
+                    DocumentsContract.getTreeDocumentId(treeUri)
+                }
+            val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, parentDocId)
+            val projection =
+                arrayOf(
+                    DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                    DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+                )
+            context.contentResolver.query(childrenUri, projection, null, null, null)?.use { cursor ->
+                while (cursor.moveToNext()) {
+                    val siblingDocId = cursor.getString(0)
+                    val displayName = cursor.getString(1) ?: continue
+                    if (displayName.lowercase() in ARCADE_BIOS_ZIPS) {
+                        val destFile = File(cacheDir, displayName)
+                        if (!destFile.exists() || destFile.length() == 0L) {
+                            val siblingUri = DocumentsContract.buildDocumentUriUsingTree(treeUri, siblingDocId)
+                            context.contentResolver.openInputStream(siblingUri)?.use { input ->
+                                input.writeToFile(destFile)
+                            }
+                        }
+                    }
+                }
+            }
+        }.onFailure {
+            Timber.e(it, "Error caching arcade companion zips")
+        }
     }
 
     private fun getColecoRomFilesZipped(
@@ -275,6 +318,16 @@ class StorageAccessFrameworkProvider(private val context: Context) : StorageProv
 
     companion object {
         const val SAF_CACHE_SUBFOLDER = "storage-framework-games"
+        private val ARCADE_BIOS_ZIPS =
+            setOf(
+                "cpzn1.zip",
+                "cpzn2.zip",
+                "coh1000c.zip",
+                "coh3002c.zip",
+                "qsound.zip",
+                "neogeo.zip",
+                "pgm.zip",
+            )
         const val VIRTUAL_FILE_PATH = "/virtual/file/path"
     }
 }
