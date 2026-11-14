@@ -6,6 +6,7 @@ import android.provider.DocumentsContract
 import androidx.documentfile.provider.DocumentFile
 import androidx.leanback.preference.LeanbackPreferenceFragment
 import com.swordfish.lemuroid.common.kotlin.extractEntryToFile
+import com.swordfish.lemuroid.common.kotlin.is7z
 import com.swordfish.lemuroid.common.kotlin.isZipped
 import com.swordfish.lemuroid.common.kotlin.writeToFile
 import com.swordfish.lemuroid.lib.R
@@ -140,8 +141,10 @@ class StorageAccessFrameworkProvider(private val context: Context) : StorageProv
 
         val forceExtractZip = originalDocument.isZipped() && game.systemId == SystemID.COLECO.dbname
         val isZipped = originalDocument.isZipped() && originalDocument.name != game.fileName
+        val is7z = originalDocument.is7z()
 
         return when {
+            is7z -> getGameRomFiles7z(game, dataFiles, originalDocument)
             forceExtractZip && dataFiles.isEmpty() -> getColecoRomFilesZipped(game, originalDocument)
             isZipped && dataFiles.isEmpty() -> getGameRomFilesZipped(game, originalDocument)
             allowVirtualFiles -> getGameRomFilesVirtual(game, dataFiles)
@@ -186,12 +189,22 @@ class StorageAccessFrameworkProvider(private val context: Context) : StorageProv
                 while (cursor.moveToNext()) {
                     val siblingDocId = cursor.getString(0)
                     val displayName = cursor.getString(1) ?: continue
-                    if (displayName.lowercase() in ARCADE_BIOS_ZIPS) {
-                        val destFile = File(cacheDir, displayName)
+                    val lowerName = displayName.lowercase()
+                    if (lowerName in ARCADE_BIOS_ZIPS) {
+                        val destFile = File(cacheDir, lowerName)
                         if (!destFile.exists() || destFile.length() == 0L) {
                             val siblingUri = DocumentsContract.buildDocumentUriUsingTree(treeUri, siblingDocId)
                             context.contentResolver.openInputStream(siblingUri)?.use { input ->
                                 input.writeToFile(destFile)
+                            }
+                        }
+                    } else if (lowerName in ARCADE_BIOS_7Z) {
+                        val zipName = "${lowerName.substringBeforeLast('.')}.zip"
+                        val destFile = File(cacheDir, zipName)
+                        if (!destFile.exists() || destFile.length() == 0L) {
+                            val siblingUri = DocumentsContract.buildDocumentUriUsingTree(treeUri, siblingDocId)
+                            SevenZipUtils.openArchive(context, siblingUri).use { opened ->
+                                SevenZipUtils.repackAllToZip(opened.archive, destFile)
                             }
                         }
                     }
@@ -240,12 +253,85 @@ class StorageAccessFrameworkProvider(private val context: Context) : StorageProv
         return getGameRomFilesStandard(game, emptyList(), originalDocument)
     }
 
+    private fun getGameRomFiles7z(
+        game: Game,
+        dataFiles: List<DataFile>,
+        originalDocument: DocumentFile,
+    ): RomFiles {
+        val baseCacheFile = GameCacheUtils.getCacheFileForGame(SAF_CACHE_SUBFOLDER, context, game)
+        val cacheDir = baseCacheFile.parentFile!!
+        val dataEntries = dataFiles.map { getDataFileStandard(game, it) }
+
+        if (game.systemId == SystemID.COLECO.dbname) {
+            val targetName = "${game.fileName.substringBeforeLast('.')}.col"
+            val cacheFile = File(cacheDir, targetName)
+            if (!cacheFile.exists() || cacheFile.length() == 0L) {
+                SevenZipUtils.openArchive(context, originalDocument.uri).use { opened ->
+                    val entries = SevenZipUtils.listEntries(opened.archive)
+                    val targetEntry =
+                        entries.firstOrNull {
+                            val lower = it.fileName.lowercase()
+                            lower.endsWith(".col") || lower.endsWith(".rom") || lower.endsWith(".bin") || lower.endsWith(".cv")
+                        } ?: entries.firstOrNull { it.fileName == game.fileName }
+                            ?: entries.firstOrNull()
+                    if (targetEntry != null) {
+                        SevenZipUtils.extractEntryToFile(opened.archive, targetEntry.index, cacheFile)
+                    }
+                }
+            }
+            if (cacheFile.exists() && cacheFile.length() > 0L) {
+                return RomFiles.Standard(listOf(cacheFile) + dataEntries)
+            }
+        }
+
+        if (game.systemId == SystemID.MAME2003PLUS.dbname || game.systemId == SystemID.FBNEO.dbname) {
+            val rawName = originalDocument.name ?: game.fileName
+            val zipName = "${rawName.substringBeforeLast('.')}.zip"
+            val cacheZip = File(cacheDir, zipName)
+            cacheArcadeCompanionZips(originalDocument.uri, cacheDir)
+            if (!cacheZip.exists() || cacheZip.length() == 0L) {
+                SevenZipUtils.openArchive(context, originalDocument.uri).use { opened ->
+                    SevenZipUtils.repackAllToZip(opened.archive, cacheZip)
+                }
+            }
+            return RomFiles.Standard(listOf(cacheZip) + dataEntries)
+        }
+
+        val docName = originalDocument.name ?: ""
+        if (game.fileName.endsWith(".cue", ignoreCase = true) && !docName.equals(game.fileName, ignoreCase = true)) {
+            val archiveBase = docName.substringBeforeLast('.').ifBlank { game.fileName.substringBeforeLast('.') }
+            val cueDir = File(cacheDir, archiveBase)
+            var cueFile = File(cueDir, game.fileName)
+            if (!cueFile.exists() || cueFile.length() == 0L) {
+                SevenZipUtils.openArchive(context, originalDocument.uri).use { opened ->
+                    SevenZipUtils.extractAllToDirectory(opened.archive, cueDir)
+                }
+                cueFile = cueDir.walkTopDown().firstOrNull { it.isFile && it.name.equals(game.fileName, ignoreCase = true) }
+                    ?: cueFile
+            }
+            return RomFiles.Standard(listOf(cueFile) + dataEntries)
+        }
+
+        val cacheFile = File(cacheDir, File(game.fileName).name)
+        if (!cacheFile.exists() || cacheFile.length() == 0L) {
+            SevenZipUtils.openArchive(context, originalDocument.uri).use { opened ->
+                val entries = SevenZipUtils.listEntries(opened.archive)
+                val targetEntry =
+                    entries.firstOrNull { it.fileName == game.fileName || it.rawPath == game.fileName }
+                        ?: entries.singleOrNull()
+                        ?: throw IllegalStateException("Entry ${game.fileName} not found in $docName")
+                SevenZipUtils.extractEntryToFile(opened.archive, targetEntry.index, cacheFile)
+            }
+        }
+        return RomFiles.Standard(listOf(cacheFile) + dataEntries)
+    }
+
     private fun getGameRomFilesZipped(
         game: Game,
         originalDocument: DocumentFile,
     ): RomFiles {
         val cacheFile = GameCacheUtils.getCacheFileForGame(SAF_CACHE_SUBFOLDER, context, game)
-        if (cacheFile.exists()) {
+        if (cacheFile.exists() && cacheFile.length() > 0L) {
             return RomFiles.Standard(listOf(cacheFile))
         }
 
@@ -327,10 +413,22 @@ class StorageAccessFrameworkProvider(private val context: Context) : StorageProv
                 "cpzn1.zip",
                 "cpzn2.zip",
                 "coh1000c.zip",
+                "coh1002c.zip",
                 "coh3002c.zip",
                 "qsound.zip",
                 "neogeo.zip",
                 "pgm.zip",
+            )
+        private val ARCADE_BIOS_7Z =
+            setOf(
+                "cpzn1.7z",
+                "cpzn2.7z",
+                "coh1000c.7z",
+                "coh1002c.7z",
+                "coh3002c.7z",
+                "qsound.7z",
+                "neogeo.7z",
+                "pgm.7z",
             )
         const val VIRTUAL_FILE_PATH = "/virtual/file/path"
     }

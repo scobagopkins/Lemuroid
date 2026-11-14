@@ -77,7 +77,7 @@ jobs:
       - name: Rename, Sign (v1+v2+v3) and Verify APK
         run: |
           mkdir -p dist
-          cp lemuroid-app/build/outputs/apk/freeBundle/release/*.apk dist/Lemuroid-custom-v10.apk
+          cp lemuroid-app/build/outputs/apk/freeBundle/release/*.apk dist/Lemuroid-custom-v11.apk
           BUILD_TOOLS=$(ls -d "${ANDROID_HOME:-$ANDROID_SDK_ROOT}"/build-tools/* | sort -V | tail -n 1)
           "$BUILD_TOOLS/apksigner" sign \
             --ks release.jks \
@@ -87,28 +87,28 @@ jobs:
             --v1-signing-enabled true \
             --v2-signing-enabled true \
             --v3-signing-enabled true \
-            dist/Lemuroid-custom-v10.apk
-          "$BUILD_TOOLS/apksigner" verify --verbose dist/Lemuroid-custom-v10.apk
+            dist/Lemuroid-custom-v11.apk
+          "$BUILD_TOOLS/apksigner" verify --verbose dist/Lemuroid-custom-v11.apk
           ls -lh dist/
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Lemuroid-custom-zn-coleco
-          path: dist/Lemuroid-custom-v10.apk
+          path: dist/Lemuroid-custom-v11.apk
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: custom-v10
-          name: "Lemuroid Custom v10 (arm64-v8a, PSOne SF Layout + SN30 Pro + Coleco Keypad)"
+          tag_name: custom-v11
+          name: "Lemuroid Custom v11 (arm64-v8a, .7z Archive Support + PSOne SF + Coleco)"
           body: |
-            Custom build of Lemuroid (v10, arm64-v8a, com.swordfish.lemuroid.zn, versionCode 258):
-            - Updates cleanly over custom-v8/v9 (same release keystore & applicationId)
-            - MAME 2003-Plus defaults to "PSOne (6 buttons)" using core Fightstick mapping (Square/Y=LP, Triangle/X=MP, R1=HP, Cross/B=LK, Circle/A=MK, R2=HK) for both touch and 8BitDo SN30 Pro
-            - FBNeo defaults to "PSOne (6 buttons)" using core Modern mapping
-            - Optional "Fightstick (6 buttons)" 2x3 touch overlay keeps the same PSOne/Fightstick SN30 Pro bindings
-            - Added MotionEvent.AXIS_GAS -> KEYCODE_BUTTON_R2 trigger mapping in InputClassGamePad
-          files: dist/Lemuroid-custom-v10.apk
+            Custom build of Lemuroid (v11, arm64-v8a, com.swordfish.lemuroid.zn, versionCode 259):
+            - Updates cleanly over custom-v8/v9/v10 (same release keystore & applicationId)
+            - Full .7z archive scanning, CRC32/Serial detection, and cached extraction via 7-Zip-JBinding-4Android (LZMA/LZMA2/solid/PPMd/BCJ2)
+            - Seekable zero-copy SAF ParcelFileDescriptor/FileChannel reader (with stream fallback)
+            - Supports single ROMs (.nes/.sfc/.md/.gba/.n64/.iso/.pbp/.col etc.), CUE+BIN sets, and Arcade (.7z -> .zip repack for MAME 2003-Plus & FBNeo)
+            - Keeps all v10 PSOne SF layout, SN30 Pro, ZN-1/2, Coleco keypad, and SAF fixes
+          files: dist/Lemuroid-custom-v11.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

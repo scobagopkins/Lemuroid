@@ -76,9 +76,17 @@ fun ZipInputStream.extractEntryToFile(
     }
 }
 
-fun File.isZipped() = extension == "zip"
+fun File.isZipped() = extension.equals("zip", ignoreCase = true)
 
-fun DocumentFile.isZipped() = type == "application/zip"
+fun File.is7z() = extension.equals("7z", ignoreCase = true)
+
+fun DocumentFile.isZipped() =
+    type == "application/zip" || name?.endsWith(".zip", ignoreCase = true) == true
+
+fun DocumentFile.is7z() =
+    type == "application/x-7z-compressed" ||
+        type == "application/7z" ||
+        name?.endsWith(".7z", ignoreCase = true) == true
 
 /** Returns the uncompressed input stream if gzip compressed. */
 private fun InputStream.uncompressedInputStream(): InputStream {

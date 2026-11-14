@@ -898,7 +898,7 @@ data class GameSystem(
                         ),
                     ),
                     uniqueExtensions = listOf(),
-                    supportedExtensions = listOf("zip"),
+                    supportedExtensions = listOf("zip", "7z"),
                     scanOptions =
                         ScanOptions(
                             scanByFilename = false,
@@ -959,7 +959,7 @@ data class GameSystem(
                         ),
                     ),
                     uniqueExtensions = listOf(),
-                    supportedExtensions = listOf("zip"),
+                    supportedExtensions = listOf("zip", "7z"),
                     scanOptions =
                         ScanOptions(
                             scanByFilename = false,
@@ -987,7 +987,7 @@ data class GameSystem(
                         ),
                     ),
                     uniqueExtensions = listOf("col"),
-                    supportedExtensions = listOf("col", "zip", "rom"),
+                    supportedExtensions = listOf("col", "zip", "7z", "rom"),
                     scanOptions =
                         ScanOptions(
                             scanByFilename = false,

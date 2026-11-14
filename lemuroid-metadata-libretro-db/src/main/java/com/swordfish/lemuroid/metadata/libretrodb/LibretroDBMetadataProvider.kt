@@ -28,6 +28,14 @@ class LibretroDBMetadataProvider(private val ovgdbManager: LibretroDBManager) :
                 "qsound.zip",
                 "neogeo.zip",
                 "pgm.zip",
+                "cpzn1.7z",
+                "cpzn2.7z",
+                "coh1000c.7z",
+                "coh1002c.7z",
+                "coh3002c.7z",
+                "qsound.7z",
+                "neogeo.7z",
+                "pgm.7z",
             )
     }
 
@@ -76,11 +84,23 @@ class LibretroDBMetadataProvider(private val ovgdbManager: LibretroDBManager) :
         )
     }
 
+    private suspend fun findRomByArchiveAwareFilename(
+        db: LibretroDatabase,
+        file: StorageFile,
+    ): LibretroRom? {
+        return db.gameDao().findByFileName(file.name)
+            ?: if (file.extension == "7z") {
+                db.gameDao().findByFileName("${file.extensionlessName}.zip")
+            } else {
+                null
+            }
+    }
+
     private suspend fun findByFilename(
         db: LibretroDatabase,
         file: StorageFile,
     ): GameMetadata? {
-        return db.gameDao().findByFileName(file.name)
+        return findRomByArchiveAwareFilename(db, file)
             .filterNullable { extractGameSystem(it).scanOptions.scanByFilename }
             ?.let { convertToGameMetadata(it) }
     }
@@ -89,7 +109,7 @@ class LibretroDBMetadataProvider(private val ovgdbManager: LibretroDBManager) :
         db: LibretroDatabase,
         file: StorageFile,
     ): GameMetadata? {
-        return db.gameDao().findByFileName(file.name)
+        return findRomByArchiveAwareFilename(db, file)
             .filterNullable { extractGameSystem(it).scanOptions.scanByPathAndFilename }
             .filterNullable { parentContainsSystem(file.path, extractGameSystem(it).id.dbname) }
             ?.let { convertToGameMetadata(it) }
