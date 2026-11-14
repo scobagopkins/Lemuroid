@@ -22,6 +22,7 @@ import java.io.Closeable
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.io.InputStream
 import java.io.RandomAccessFile
 import java.nio.ByteBuffer
 import java.nio.channels.FileChannel
@@ -98,6 +99,27 @@ object SevenZipUtils {
         } catch (_: Throwable) {
             System.loadLibrary("7-Zip-JBinding")
             SevenZip.initLoadedLibraries()
+        }
+    }
+
+    fun openArchive(file: File): OpenedSevenZipArchive {
+        ensureInitialized()
+        val inStream = RandomAccessFileInStream(RandomAccessFile(file, "r"))
+        return try {
+            val archive = SevenZip.openInArchive(ArchiveFormat.SEVEN_ZIP, inStream)
+            OpenedSevenZipArchive(archive, inStream, null)
+        } catch (t: Throwable) {
+            runCatching { inStream.close() }
+            throw t
+        }
+    }
+
+    fun repackFileToZip(
+        source7z: File,
+        targetZip: File,
+    ) {
+        openArchive(source7z).use { opened ->
+            repackAllToZip(opened.archive, targetZip)
         }
     }
 
@@ -407,8 +429,18 @@ object SevenZipUtils {
                     if (isFolder) return null
 
                     val rawPath = (archive.getStringProperty(index, PropID.PATH) ?: "").replace('\\', '/')
-                    val entryName = rawPath.split('/').filter { it.isNotEmpty() && it != "." && it != ".." }.joinToString("/")
-                    if (entryName.isEmpty() || !seenNames.add(entryName)) return null
+                    val segments = rawPath.split('/').filter { it.isNotEmpty() && it != "." && it != ".." }
+                    if (segments.isEmpty()) return null
+                    val baseName = segments.last()
+                    val entryName =
+                        if (!seenNames.contains(baseName)) {
+                            baseName
+                        } else {
+                            val fullPath = segments.joinToString("/")
+                            if (seenNames.contains(fullPath)) return null
+                            fullPath
+                        }
+                    seenNames.add(entryName)
 
                     try {
                         if (entryOpen) {
@@ -451,6 +483,9 @@ object SevenZipUtils {
             zos.close()
             if (lastError != null) {
                 throw IOException("7z repack failed: $lastError")
+            }
+            if (seenNames.isEmpty()) {
+                throw IOException("7z archive contained no extractable files")
             }
             if (targetZip.exists()) {
                 targetZip.delete()

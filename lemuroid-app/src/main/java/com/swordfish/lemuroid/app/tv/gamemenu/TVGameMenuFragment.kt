@@ -90,6 +90,7 @@ class TVGameMenuFragment(
             systemCoreConfig.coreID,
             connectedGamePads,
             systemCoreConfig.controllerConfigs,
+            game,
         )
     }
 

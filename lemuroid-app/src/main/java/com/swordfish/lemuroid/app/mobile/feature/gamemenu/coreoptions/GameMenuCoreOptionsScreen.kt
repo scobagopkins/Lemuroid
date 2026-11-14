@@ -88,7 +88,7 @@ private fun ControllersOptions(
     val controllers = gameMenuRequest.coreConfig.controllerConfigs
 
     val visibleControllers =
-        (0 until connectedGamePads)
+        (0 until maxOf(1, connectedGamePads))
             .map { it to controllers[it] }
             .filter { (_, controllers) -> controllers != null && controllers.size >= 2 }
 
@@ -105,12 +105,15 @@ private fun ControllersOptions(
                 items = controllerConfigs!!.map { stringResource(id = it.displayName) },
                 state =
                     indexPreferenceState(
-                        ControllerConfigsManager.getSharedPreferencesId(
-                            gameMenuRequest.game.systemId,
+                        ControllerConfigsManager.getPreferenceKey(
+                            gameMenuRequest.game,
                             gameMenuRequest.coreConfig.coreID,
                             port,
                         ),
-                        controllerConfigs.map { it.name }.first(),
+                        ControllerConfigsManager.getDefaultControllerName(
+                            gameMenuRequest.game,
+                            controllerConfigs,
+                        ),
                         controllerConfigs.map { it.name },
                     ),
             )

@@ -109,6 +109,7 @@ class BaseGameScreenViewModel(
     private val inputs =
         GameViewModelInput(
             appContext,
+            game,
             system,
             systemCoreConfig,
             inputDeviceManager,

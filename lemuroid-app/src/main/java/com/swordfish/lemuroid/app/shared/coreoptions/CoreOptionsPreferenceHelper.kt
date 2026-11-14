@@ -12,6 +12,7 @@ import com.swordfish.lemuroid.app.shared.settings.ControllerConfigsManager
 import com.swordfish.lemuroid.lib.controller.ControllerConfig
 import com.swordfish.lemuroid.lib.core.CoreVariablesManager
 import com.swordfish.lemuroid.lib.library.CoreID
+import com.swordfish.lemuroid.lib.library.db.entity.Game
 
 object CoreOptionsPreferenceHelper {
     val BOOLEAN_SET = setOf("enabled", "disabled")
@@ -41,9 +42,10 @@ object CoreOptionsPreferenceHelper {
         coreID: CoreID,
         connectedGamePads: Int,
         controllers: Map<Int, List<ControllerConfig>>,
+        game: Game? = null,
     ) {
         val visibleControllers =
-            (0 until connectedGamePads)
+            (0 until maxOf(1, connectedGamePads))
                 .map { it to controllers[it] }
                 .filter { (_, controllers) -> controllers != null && controllers.size >= 2 }
 
@@ -57,7 +59,7 @@ object CoreOptionsPreferenceHelper {
 
         visibleControllers
             .forEach { (port, controllers) ->
-                val preference = buildControllerPreference(context, systemID, coreID, port, controllers!!)
+                val preference = buildControllerPreference(context, systemID, coreID, port, controllers!!, game)
                 category.addPreference(preference)
             }
     }
@@ -122,15 +124,18 @@ object CoreOptionsPreferenceHelper {
         coreID: CoreID,
         port: Int,
         controllerConfigs: List<ControllerConfig>,
+        game: Game? = null,
     ): Preference {
         val preference = ListPreference(context)
-        preference.key = ControllerConfigsManager.getSharedPreferencesId(systemID, coreID, port)
+        preference.key =
+            game?.let { ControllerConfigsManager.getPreferenceKey(it, coreID, port) }
+                ?: ControllerConfigsManager.getSharedPreferencesId(systemID, coreID, port)
         preference.title = context.getString(R.string.core_settings_controller, (port + 1).toString())
         preference.entries = controllerConfigs.map { context.getString(it.displayName) }.toTypedArray()
         preference.entryValues = controllerConfigs.map { it.name }.toTypedArray()
         preference.summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
         preference.isIconSpaceReserved = false
-        preference.setDefaultValue(controllerConfigs.map { it.name }.first())
+        preference.setDefaultValue(ControllerConfigsManager.getDefaultControllerName(game, controllerConfigs))
         return preference
     }
 

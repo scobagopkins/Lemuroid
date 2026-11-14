@@ -228,10 +228,17 @@ class GameLoader(
             }
 
         val srcDir = romFile.parentFile
+        val znSearchDirs =
+            listOfNotNull(srcDir) +
+                com.swordfish.lemuroid.lib.storage.local.ArcadeCompanionUtils.getSystemArcadeDirs(
+                    directoriesManager.getSystemDirectory(),
+                )
         val hasZnBiosSibling =
-            srcDir != null &&
-                listOf("cpzn1.zip", "cpzn2.zip", "coh1000c.zip", "coh1002c.zip", "coh3002c.zip")
-                    .any { File(srcDir, it).exists() }
+            znSearchDirs.any { dir ->
+                dir.exists() &&
+                    listOf("cpzn1.zip", "cpzn2.zip", "coh1000c.zip", "coh1002c.zip", "coh3002c.zip")
+                        .any { File(dir, it).exists() }
+            }
 
         if (targetDriverName == null && !hasZnBiosSibling && 0x50033af6L !in entryCrcs && 0xe860ea8bL !in entryCrcs) {
             return gameFiles
@@ -246,10 +253,11 @@ class GameLoader(
             romFile.copyTo(stagedOriginal, overwrite = true)
         }
 
-        // Copy any sibling ZN/QSound zips into stageDir
-        if (srcDir != null && srcDir.exists()) {
+        // Copy any sibling/system ZN/QSound zips into stageDir
+        for (searchDir in znSearchDirs) {
+            if (!searchDir.exists()) continue
             for (compName in ZN_COMPANION_ROMS) {
-                val srcComp = File(srcDir, compName)
+                val srcComp = File(searchDir, compName)
                 if (srcComp.exists() && srcComp.isFile) {
                     val dstComp = File(stageDir, compName.lowercase())
                     if (!dstComp.exists() || dstComp.length() != srcComp.length()) {

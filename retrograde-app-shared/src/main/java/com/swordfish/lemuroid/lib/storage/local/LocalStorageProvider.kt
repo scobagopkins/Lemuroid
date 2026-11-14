@@ -135,6 +135,40 @@ class LocalStorageProvider(
                 }
             }
         }
+        val configuredRoots =
+            listOfNotNull(
+                getExternalFolder(),
+                directoriesManager.getInternalRomsDirectory(),
+            )
+
+        if (originalFile.isZipped() && ArcadeCompanionUtils.isArcadeSystemId(game.systemId) && originalFile.name == game.fileName) {
+            val needsCachePromotion =
+                ArcadeCompanionUtils.stageLocalArcadeCompanions(
+                    game = game,
+                    gameDir = originalFile.parentFile ?: directoriesManager.getInternalRomsDirectory(),
+                    cacheGameDir = null,
+                    systemBaseDir = directoriesManager.getSystemDirectory(),
+                    configuredRootDirs = configuredRoots,
+                )
+            if (needsCachePromotion) {
+                val baseCacheFile = GameCacheUtils.getCacheFileForGame(LOCAL_STORAGE_CACHE_SUBFOLDER, context, game)
+                val cacheDir = baseCacheFile.parentFile!!
+                val cachedGameZip = File(cacheDir, originalFile.name)
+                ArcadeCompanionUtils.stageLocalArcadeCompanions(
+                    game = game,
+                    gameDir = originalFile.parentFile ?: directoriesManager.getInternalRomsDirectory(),
+                    cacheGameDir = cacheDir,
+                    systemBaseDir = directoriesManager.getSystemDirectory(),
+                    configuredRootDirs = configuredRoots,
+                )
+                if (!ArcadeCompanionUtils.isValidZip(cachedGameZip) || cachedGameZip.length() != originalFile.length()) {
+                    ArcadeCompanionUtils.copyFileAtomic(originalFile, cachedGameZip)
+                }
+                return cachedGameZip
+            }
+            return originalFile
+        }
+
         if (!originalFile.isZipped() || originalFile.name == game.fileName) {
             return originalFile
         }
@@ -180,16 +214,27 @@ class LocalStorageProvider(
             }
         }
 
-        if (game.systemId == SystemID.MAME2003PLUS.dbname || game.systemId == SystemID.FBNEO.dbname) {
+        if (ArcadeCompanionUtils.isArcadeSystemId(game.systemId)) {
             val zipName = "${originalFile.nameWithoutExtension}.zip"
             val cacheZip = File(cacheDir, zipName)
-            copyLocalArcadeCompanionFiles(originalFile.parentFile, cacheDir)
-            if (cacheZip.exists() && cacheZip.length() > 0L) {
+            val configuredRoots =
+                listOfNotNull(
+                    getExternalFolder(),
+                    directoriesManager.getInternalRomsDirectory(),
+                )
+            ArcadeCompanionUtils.stageLocalArcadeCompanions(
+                game = game,
+                gameDir = originalFile.parentFile ?: directoriesManager.getInternalRomsDirectory(),
+                cacheGameDir = cacheDir,
+                systemBaseDir = directoriesManager.getSystemDirectory(),
+                configuredRootDirs = configuredRoots,
+            )
+            val srcMod = originalFile.lastModified()
+            if (ArcadeCompanionUtils.isValidFlatZip(cacheZip) && (srcMod <= 0L || cacheZip.lastModified() >= srcMod)) {
                 return cacheZip
             }
-            SevenZipUtils.openArchive(context, originalFile.toUri()).use { opened ->
-                SevenZipUtils.repackAllToZip(opened.archive, cacheZip)
-            }
+            SevenZipUtils.repackFileToZip(originalFile, cacheZip)
+            if (srcMod > 0L) cacheZip.setLastModified(srcMod)
             return cacheZip
         }
 
@@ -212,36 +257,15 @@ class LocalStorageProvider(
         }
         SevenZipUtils.openArchive(context, originalFile.toUri()).use { opened ->
             val entries = SevenZipUtils.listEntries(opened.archive)
+            val nonDoc = entries.filterNot { ArcadeCompanionUtils.isIgnoredArchiveDocOrImage(it.fileName) }.ifEmpty { entries }
             val targetEntry =
                 entries.firstOrNull { it.fileName == game.fileName || it.rawPath == game.fileName }
-                    ?: entries.singleOrNull()
+                    ?: nonDoc.maxByOrNull { it.size }
+                    ?: entries.firstOrNull()
                     ?: throw IllegalStateException("Entry ${game.fileName} not found in ${originalFile.name}")
             SevenZipUtils.extractEntryToFile(opened.archive, targetEntry.index, cacheFile)
         }
         return cacheFile
-    }
-
-    private fun copyLocalArcadeCompanionFiles(
-        srcDir: File?,
-        cacheDir: File,
-    ) {
-        if (srcDir == null || !srcDir.exists()) return
-        for (baseName in ARCADE_BIOS_BASENAMES) {
-            val zipSrc = File(srcDir, "$baseName.zip")
-            val zipDst = File(cacheDir, "$baseName.zip")
-            if (zipSrc.exists() && zipSrc.isFile && (!zipDst.exists() || zipDst.length() == 0L)) {
-                zipSrc.copyTo(zipDst, overwrite = true)
-                continue
-            }
-            val sevenZSrc = File(srcDir, "$baseName.7z")
-            if (sevenZSrc.exists() && sevenZSrc.isFile && (!zipDst.exists() || zipDst.length() == 0L)) {
-                runCatching {
-                    SevenZipUtils.openArchive(context, sevenZSrc.toUri()).use { opened ->
-                        SevenZipUtils.repackAllToZip(opened.archive, zipDst)
-                    }
-                }
-            }
-        }
     }
 
     override fun getGameRomFiles(
@@ -258,7 +282,5 @@ class LocalStorageProvider(
 
     companion object {
         const val LOCAL_STORAGE_CACHE_SUBFOLDER = "local-storage-games"
-        private val ARCADE_BIOS_BASENAMES =
-            listOf("cpzn1", "cpzn2", "coh1000c", "coh1002c", "coh3002c", "qsound", "neogeo", "pgm")
     }
 }

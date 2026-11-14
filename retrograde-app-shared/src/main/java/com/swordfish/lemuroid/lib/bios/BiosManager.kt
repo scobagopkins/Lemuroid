@@ -7,6 +7,7 @@ import com.swordfish.lemuroid.lib.library.SystemCoreConfig
 import com.swordfish.lemuroid.lib.library.SystemID
 import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.lemuroid.lib.storage.DirectoriesManager
+import com.swordfish.lemuroid.lib.storage.local.ArcadeCompanionUtils
 import com.swordfish.lemuroid.lib.storage.StorageFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -68,6 +69,23 @@ class BiosManager(private val directoriesManager: DirectoriesManager) {
         inputStream: InputStream,
         timestampMs: Long,
     ): Boolean {
+        if (ArcadeCompanionUtils.isArcadeBiosFile(storageFile.name)) {
+            val imported =
+                runCatching {
+                    ArcadeCompanionUtils.stageStreamBios(
+                        storageFile.name,
+                        inputStream,
+                        timestampMs,
+                        directoriesManager.getSystemDirectory(),
+                    )
+                }.onFailure {
+                    Timber.e(it, "Failed importing arcade bios ${storageFile.name}")
+                }.getOrDefault(false)
+            if (imported) {
+                Timber.i("Imported arcade bios file: ${storageFile.name}")
+                return true
+            }
+        }
         val bios = findByCRC(storageFile) ?: findByName(storageFile) ?: return false
 
         Timber.i("Importing bios file: $bios")

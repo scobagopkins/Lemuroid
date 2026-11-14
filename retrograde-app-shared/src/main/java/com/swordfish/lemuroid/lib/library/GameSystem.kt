@@ -882,17 +882,17 @@ data class GameSystem(
                                 hashMapOf(
                                     0 to
                                         arrayListOf(
-                                            ControllerConfigs.FB_NEO_PS1,
-                                            ControllerConfigs.FB_NEO_FIGHTSTICK,
                                             ControllerConfigs.FB_NEO_6,
                                             ControllerConfigs.FB_NEO_4,
+                                            ControllerConfigs.FB_NEO_PS1,
+                                            ControllerConfigs.FB_NEO_FIGHTSTICK,
                                         ),
                                     1 to
                                         arrayListOf(
-                                            ControllerConfigs.FB_NEO_PS1,
-                                            ControllerConfigs.FB_NEO_FIGHTSTICK,
                                             ControllerConfigs.FB_NEO_6,
                                             ControllerConfigs.FB_NEO_4,
+                                            ControllerConfigs.FB_NEO_PS1,
+                                            ControllerConfigs.FB_NEO_FIGHTSTICK,
                                         ),
                                 ),
                         ),
@@ -904,7 +904,7 @@ data class GameSystem(
                             scanByFilename = false,
                             scanByUniqueExtension = false,
                             scanByPathAndFilename = true,
-                            scanByPathAndSupportedExtensions = false,
+                            scanByPathAndSupportedExtensions = true,
                         ),
                 ),
                 GameSystem(
@@ -926,17 +926,17 @@ data class GameSystem(
                                 hashMapOf(
                                     0 to
                                         arrayListOf(
-                                            ControllerConfigs.MAME_2003_PS1,
-                                            ControllerConfigs.MAME_2003_FIGHTSTICK,
                                             ControllerConfigs.MAME_2003_6,
                                             ControllerConfigs.MAME_2003_4,
+                                            ControllerConfigs.MAME_2003_PS1,
+                                            ControllerConfigs.MAME_2003_FIGHTSTICK,
                                         ),
                                     1 to
                                         arrayListOf(
-                                            ControllerConfigs.MAME_2003_PS1,
-                                            ControllerConfigs.MAME_2003_FIGHTSTICK,
                                             ControllerConfigs.MAME_2003_6,
                                             ControllerConfigs.MAME_2003_4,
+                                            ControllerConfigs.MAME_2003_PS1,
+                                            ControllerConfigs.MAME_2003_FIGHTSTICK,
                                         ),
                                 ),
                         ),
@@ -954,6 +954,8 @@ data class GameSystem(
                                         arrayListOf(
                                             ControllerConfigs.MAME_2003_6,
                                             ControllerConfigs.MAME_2003_4,
+                                            ControllerConfigs.MAME_2003_PS1,
+                                            ControllerConfigs.MAME_2003_FIGHTSTICK,
                                         ),
                                 ),
                         ),

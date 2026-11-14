@@ -24,6 +24,7 @@ import com.swordfish.lemuroid.common.kotlin.zipOnKeys
 import com.swordfish.lemuroid.lib.controller.ControllerConfig
 import com.swordfish.lemuroid.lib.library.GameSystem
 import com.swordfish.lemuroid.lib.library.SystemCoreConfig
+import com.swordfish.lemuroid.lib.library.db.entity.Game
 import com.swordfish.libretrodroid.Controller
 import com.swordfish.libretrodroid.GLRetroView
 import com.swordfish.libretrodroid.GLRetroView.Companion.MOTION_SOURCE_ANALOG_LEFT
@@ -49,6 +50,7 @@ import kotlin.math.abs
 
 class GameViewModelInput(
     private val appContext: Context,
+    private val game: Game,
     private val system: GameSystem,
     private val systemCoreConfig: SystemCoreConfig,
     private val inputDeviceManager: InputDeviceManager,
@@ -389,7 +391,7 @@ class GameViewModelInput(
     private suspend fun initializeControllersConfigFlow() {
         try {
             retroGameView.waitRetroGameViewInitialized()
-            val controllers = controllerConfigsManager.getControllerConfigs(system.id, systemCoreConfig)
+            val controllers = controllerConfigsManager.getControllerConfigs(system.id, systemCoreConfig, game)
             controllerConfigsState.value = controllers
         } catch (e: Exception) {
             Timber.e(e)

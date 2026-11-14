@@ -12,7 +12,7 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 
 object DocumentFileParser {
-    private const val MAX_CHECKED_ENTRIES = 3
+    private const val MAX_CHECKED_ENTRIES = 16
     private const val SINGLE_ARCHIVE_THRESHOLD = 0.9
     private const val MAX_SIZE_CRC32 = 1_000_000_000
     private val SERIAL_SCAN_EXTENSIONS = setOf("pbp", "iso", "bin", "3ds")
@@ -43,9 +43,26 @@ object DocumentFileParser {
         context: Context,
         baseStorageFile: BaseStorageFile,
     ): StorageFile {
+        if (ArcadeCompanionUtils.isArcadeBiosFile(baseStorageFile.name)) {
+            return StorageFile(
+                baseStorageFile.name,
+                baseStorageFile.size,
+                null,
+                null,
+                baseStorageFile.uri,
+                baseStorageFile.uri.path,
+                null,
+            )
+        }
         val inputStream = context.contentResolver.openInputStream(baseStorageFile.uri)
         return ZipInputStream(inputStream).use {
-            val gameEntry = findGameEntry(it, baseStorageFile.size)
+            val gameEntry =
+                findGameEntry(
+                    it,
+                    baseStorageFile.size,
+                    baseStorageFile.name,
+                    baseStorageFile.uri.path ?: "",
+                )
             if (gameEntry != null) {
                 Timber.d("Handing zip file as compressed game: ${baseStorageFile.name}")
                 parseCompressedGame(baseStorageFile, gameEntry, it)
@@ -60,11 +77,28 @@ object DocumentFileParser {
         context: Context,
         baseStorageFile: BaseStorageFile,
     ): StorageFile {
+        if (ArcadeCompanionUtils.isArcadeBiosFile(baseStorageFile.name)) {
+            return StorageFile(
+                baseStorageFile.name,
+                baseStorageFile.size,
+                null,
+                null,
+                baseStorageFile.uri,
+                baseStorageFile.uri.path,
+                null,
+            )
+        }
         return runCatching {
             SevenZipUtils.openArchive(context, baseStorageFile.uri).use { opened ->
                 val entries = SevenZipUtils.listEntries(opened.archive)
                 val totalSize = entries.sumOf { it.size.coerceAtLeast(0L) }
-                val gameEntry = find7zGameEntry(entries, totalSize)
+                val gameEntry =
+                    find7zGameEntry(
+                        entries,
+                        totalSize,
+                        baseStorageFile.name,
+                        baseStorageFile.uri.path ?: "",
+                    )
                 if (gameEntry != null) {
                     Timber.d("Handling 7z file as compressed game: ${gameEntry.fileName}")
                     val diskInfo = extractSerialFrom7z(opened.archive, gameEntry)
@@ -147,12 +181,38 @@ object DocumentFileParser {
     private fun find7zGameEntry(
         entries: List<SevenZipEntryInfo>,
         totalSize: Long,
+        archiveName: String = "",
+        archivePath: String = "",
     ): SevenZipEntryInfo? {
-        if (entries.isEmpty()) return null
-        if (entries.size == 1) return entries.first()
-        if (totalSize <= 0L) return null
-        return entries.firstOrNull { entry ->
-            entry.size > 0L && (entry.size.toFloat() / totalSize.toFloat()) > SINGLE_ARCHIVE_THRESHOLD
+        if (entries.isEmpty() || ArcadeCompanionUtils.isArcadeBiosFile(archiveName)) return null
+        val nonDocEntries =
+            entries.filterNot { ArcadeCompanionUtils.isIgnoredArchiveDocOrImage(it.fileName) }
+                .ifEmpty { entries }
+        if (nonDocEntries.size > 1 && nonDocEntries.any { it.fileName.endsWith(".cue", ignoreCase = true) }) {
+            return null
+        }
+        val arcadePath = ArcadeCompanionUtils.isArcadePath(archivePath)
+        if (nonDocEntries.size == 1) {
+            val only = nonDocEntries.first()
+            val ext = only.fileName.substringAfterLast('.', "").lowercase()
+            if (arcadePath) {
+                return if (ext in ArcadeCompanionUtils.UNMISTAKABLE_CONSOLE_EXTENSIONS) only else null
+            }
+            return if (
+                ext in ArcadeCompanionUtils.UNMISTAKABLE_CONSOLE_EXTENSIONS ||
+                ext in setOf("bin", "rom", "img", "mdf")
+            ) {
+                only
+            } else {
+                null
+            }
+        }
+        val effectiveTotal = nonDocEntries.sumOf { it.size.coerceAtLeast(0L) }.takeIf { it > 0L } ?: totalSize
+        if (effectiveTotal <= 0L) return null
+        return nonDocEntries.firstOrNull { entry ->
+            entry.size > 0L &&
+                (entry.size.toFloat() / effectiveTotal.toFloat()) > SINGLE_ARCHIVE_THRESHOLD &&
+                ArcadeCompanionUtils.isUnmistakableConsoleFile(entry.fileName)
         }
     }
 
@@ -211,10 +271,15 @@ object DocumentFileParser {
     fun findGameEntry(
         openedInputStream: ZipInputStream,
         fileSize: Long = -1,
+        archiveName: String = "",
+        archivePath: String = "",
     ): ZipEntry? {
+        if (ArcadeCompanionUtils.isArcadeBiosFile(archiveName)) return null
+        val arcadePath = ArcadeCompanionUtils.isArcadePath(archivePath)
         for (i in 0..MAX_CHECKED_ENTRIES) {
             val entry = openedInputStream.nextEntry ?: break
-            if (!isGameEntry(entry, fileSize)) continue
+            if (entry.isDirectory || ArcadeCompanionUtils.isIgnoredArchiveDocOrImage(entry.name)) continue
+            if (!isGameEntry(entry, fileSize, arcadePath)) continue
             return entry
         }
         return null
@@ -223,8 +288,15 @@ object DocumentFileParser {
     private fun isGameEntry(
         entry: ZipEntry,
         fileSize: Long,
+        arcadePath: Boolean = false,
     ): Boolean {
         if (fileSize <= 0 || entry.compressedSize <= 0) return false
-        return (entry.compressedSize.toFloat() / fileSize.toFloat()) > SINGLE_ARCHIVE_THRESHOLD
+        if ((entry.compressedSize.toFloat() / fileSize.toFloat()) <= SINGLE_ARCHIVE_THRESHOLD) return false
+        val ext = entry.name.substringAfterLast('.', "").lowercase()
+        if (arcadePath) {
+            return ext in ArcadeCompanionUtils.UNMISTAKABLE_CONSOLE_EXTENSIONS
+        }
+        return ext in ArcadeCompanionUtils.UNMISTAKABLE_CONSOLE_EXTENSIONS ||
+            ext in setOf("bin", "rom", "img", "mdf")
     }
 }
