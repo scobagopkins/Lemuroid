@@ -10,8 +10,8 @@ plugins {
 
 android {
     defaultConfig {
-        versionCode = 261
-        versionName = "1.17.0-custom13" // Always remember to update Cores Tag!
+        versionCode = 262
+        versionName = "1.17.0-custom14" // Always remember to update Cores Tag!
         applicationId = "com.swordfish.lemuroid.zn"
         ndk {
             abiFilters += listOf("arm64-v8a")

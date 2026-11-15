@@ -259,7 +259,21 @@
 
     <string name="scan_options_title">Scan options</string>
     <string name="scan_options_download_covers_title">Download game cover art</string>
-    <string name="scan_options_download_covers_desc">Saves artwork to a separate app folder so your ROM folders stay clean</string>
+    <string name="scan_options_download_covers_desc">Choose what artwork to download and where to store it</string>
+    <string name="scan_options_cover_type_header">Artwork type</string>
+    <string name="scan_options_cover_type_boxart_title">Box art / flyer (Boxarts)</string>
+    <string name="scan_options_cover_type_boxart_desc">Only box covers for consoles or arcade flyers</string>
+    <string name="scan_options_cover_type_snap_title">In-game screenshot (Snaps)</string>
+    <string name="scan_options_cover_type_snap_desc">Only gameplay screenshots</string>
+    <string name="scan_options_cover_type_title_title">Title screen (Titles)</string>
+    <string name="scan_options_cover_type_title_desc">Only game title / start screens</string>
+    <string name="scan_options_cover_type_auto_title">Auto fallback (Boxarts → Titles → Snaps)</string>
+    <string name="scan_options_cover_type_auto_desc">Tries box art first, then title screen or gameplay screenshot</string>
+    <string name="scan_options_cover_storage_header">Where to save artwork</string>
+    <string name="scan_options_cover_storage_app_title">Separate app folder</string>
+    <string name="scan_options_cover_storage_app_desc">Inside app data (Android/data/…); keeps ROM folders untouched</string>
+    <string name="scan_options_cover_storage_rom_title">Hidden .covers/ folder inside ROM folder</string>
+    <string name="scan_options_cover_storage_rom_desc">Saves inside .covers/ next to your games (hidden from gallery and ROM scanner)</string>
     <string name="scan_options_repack_header">Archive &amp; format handling</string>
     <string name="scan_options_repack_cache_title">Repack to cache on launch (default)</string>
     <string name="scan_options_repack_cache_desc">Keeps files in your folder untouched; extracts or repacks into app cache when launching a game</string>

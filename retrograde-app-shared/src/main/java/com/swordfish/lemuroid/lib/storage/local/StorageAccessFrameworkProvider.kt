@@ -108,6 +108,10 @@ class StorageAccessFrameworkProvider(private val context: Context) : StorageProv
                 val documentSize = it.getLong(2)
                 val mimeType = it.getString(3)
 
+                if (documentName.isNullOrEmpty() || documentName.startsWith(".")) {
+                    continue
+                }
+
                 if (mimeType == DocumentsContract.Document.MIME_TYPE_DIR) {
                     resultDirectories.add(documentId)
                 } else {

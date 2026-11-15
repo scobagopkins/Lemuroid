@@ -202,11 +202,13 @@ abstract class LemuroidApplicationModule {
         @PerApp
         @JvmStatic
         fun coverDownloader(
+            context: Context,
             db: RetrogradeDatabase,
             customCoverManager: CustomCoverManager,
             libretroDBManager: LibretroDBManager,
+            directoriesManager: DirectoriesManager,
             okHttpClient: OkHttpClient,
-        ) = CoverDownloader(db, customCoverManager, libretroDBManager, okHttpClient)
+        ) = CoverDownloader(context, db, customCoverManager, libretroDBManager, directoriesManager, okHttpClient)
 
         @Provides
         @PerApp

@@ -198,7 +198,21 @@
 
     <string name="scan_options_title">Параметры сканирования</string>
     <string name="scan_options_download_covers_title">Скачать обложки игр</string>
-    <string name="scan_options_download_covers_desc">Сохраняются в отдельную папку приложения — папка с играми остаётся чистой</string>
+    <string name="scan_options_download_covers_desc">Выберите тип картинок и место для их сохранения</string>
+    <string name="scan_options_cover_type_header">Какие картинки скачивать</string>
+    <string name="scan_options_cover_type_boxart_title">Обложка коробки / флаер (Boxart)</string>
+    <string name="scan_options_cover_type_boxart_desc">Только обложки коробок (для аркад — постеры/флаеры)</string>
+    <string name="scan_options_cover_type_snap_title">Скриншот из игры (Snap)</string>
+    <string name="scan_options_cover_type_snap_desc">Только скриншоты игрового процесса</string>
+    <string name="scan_options_cover_type_title_title">Титульный экран (Title)</string>
+    <string name="scan_options_cover_type_title_desc">Только стартовый экран / заставка игры</string>
+    <string name="scan_options_cover_type_auto_title">Авто-подбор (обложка → титул → скриншот)</string>
+    <string name="scan_options_cover_type_auto_desc">Ищет обложку, если нет — титульный экран или скриншот</string>
+    <string name="scan_options_cover_storage_header">Куда сохранять картинки</string>
+    <string name="scan_options_cover_storage_app_title">Отдельная папка приложения</string>
+    <string name="scan_options_cover_storage_app_desc">Внутри данных приложения (Android/data/…), папка ROM не меняется</string>
+    <string name="scan_options_cover_storage_rom_title">Скрытая папка .covers/ в папке с играми</string>
+    <string name="scan_options_cover_storage_rom_desc">Сохраняет в .covers/ внутри папки с ROM (скрыто от галереи и сканера)</string>
     <string name="scan_options_repack_header">Обработка архивов и форматов</string>
     <string name="scan_options_repack_cache_title">Переупаковывать в кэш при запуске (как сейчас)</string>
     <string name="scan_options_repack_cache_desc">Файлы в папке не изменяются; конвертация происходит в кэш при запуске, если эмулятору нужен другой формат</string>

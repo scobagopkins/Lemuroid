@@ -48,6 +48,9 @@ class LibraryIndexWork(context: Context, workerParams: WorkerParameters) :
         setForegroundAsync(foregroundInfo)
 
         val downloadCovers = inputData.getBoolean(LibraryIndexScheduler.KEY_DOWNLOAD_COVERS, false)
+        val coverArtType = CoverArtType.fromName(inputData.getString(LibraryIndexScheduler.KEY_COVER_ART_TYPE))
+        val coverStorageLocation =
+            CoverStorageLocation.fromName(inputData.getString(LibraryIndexScheduler.KEY_COVER_STORAGE_LOCATION))
         val repackInFolder = inputData.getBoolean(LibraryIndexScheduler.KEY_REPACK_IN_FOLDER, false)
 
         if (repackInFolder && !isStopped) {
@@ -100,7 +103,10 @@ class LibraryIndexWork(context: Context, workerParams: WorkerParameters) :
             withContext(Dispatchers.IO) {
                 kotlin.runCatching {
                     val coverResult =
-                        coverDownloader.downloadMissingCovers { done, total ->
+                        coverDownloader.downloadMissingCovers(
+                            artType = coverArtType,
+                            storageLocation = coverStorageLocation,
+                        ) { done, total ->
                             notificationManager.notify(
                                 NotificationsManager.LIBRARY_INDEXING_NOTIFICATION_ID,
                                 notificationsManager.libraryIndexingNotification(

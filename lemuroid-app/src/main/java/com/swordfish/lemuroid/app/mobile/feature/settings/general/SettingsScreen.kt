@@ -33,6 +33,8 @@ import androidx.navigation.NavController
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.mobile.feature.main.MainRoute
 import com.swordfish.lemuroid.app.mobile.feature.main.navigateToRoute
+import com.swordfish.lemuroid.app.shared.library.CoverArtType
+import com.swordfish.lemuroid.app.shared.library.CoverStorageLocation
 import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
 import com.swordfish.lemuroid.app.shared.library.ScanOptions
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
@@ -244,7 +246,19 @@ private fun RomsSettings(
     if (showScanDialog) {
         val prefs = remember { SharedPreferencesHelper.getLegacySharedPreferences(context) }
         val savedDownloadCovers = remember { prefs.getBoolean(LibraryIndexScheduler.KEY_DOWNLOAD_COVERS, false) }
+        val savedCoverArtType =
+            remember {
+                CoverArtType.fromName(prefs.getString(LibraryIndexScheduler.KEY_COVER_ART_TYPE, null))
+            }
+        val savedCoverLocation =
+            remember {
+                CoverStorageLocation.fromName(prefs.getString(LibraryIndexScheduler.KEY_COVER_STORAGE_LOCATION, null))
+            }
         var downloadCovers by remember { mutableStateOf(savedDownloadCovers) }
+        var coverArtType by remember { mutableStateOf(savedCoverArtType) }
+        var coverStorageLocation by remember {
+            mutableStateOf(if (isSafDirectory) CoverStorageLocation.APP_STORAGE else savedCoverLocation)
+        }
         var repackInFolder by remember { mutableStateOf(false) }
 
         AlertDialog(
@@ -253,7 +267,7 @@ private fun RomsSettings(
             text = {
                 Column(
                     modifier = Modifier.verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     Row(
                         modifier =
@@ -280,71 +294,92 @@ private fun RomsSettings(
                         }
                     }
 
+                    if (downloadCovers) {
+                        Column(
+                            modifier = Modifier.padding(start = 12.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Text(
+                                text = stringResource(R.string.scan_options_cover_type_header),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                            ScanRadioOption(
+                                selected = coverArtType == CoverArtType.BOXART,
+                                title = stringResource(R.string.scan_options_cover_type_boxart_title),
+                                subtitle = stringResource(R.string.scan_options_cover_type_boxart_desc),
+                                onClick = { coverArtType = CoverArtType.BOXART },
+                            )
+                            ScanRadioOption(
+                                selected = coverArtType == CoverArtType.SNAP,
+                                title = stringResource(R.string.scan_options_cover_type_snap_title),
+                                subtitle = stringResource(R.string.scan_options_cover_type_snap_desc),
+                                onClick = { coverArtType = CoverArtType.SNAP },
+                            )
+                            ScanRadioOption(
+                                selected = coverArtType == CoverArtType.TITLE,
+                                title = stringResource(R.string.scan_options_cover_type_title_title),
+                                subtitle = stringResource(R.string.scan_options_cover_type_title_desc),
+                                onClick = { coverArtType = CoverArtType.TITLE },
+                            )
+                            ScanRadioOption(
+                                selected = coverArtType == CoverArtType.AUTO,
+                                title = stringResource(R.string.scan_options_cover_type_auto_title),
+                                subtitle = stringResource(R.string.scan_options_cover_type_auto_desc),
+                                onClick = { coverArtType = CoverArtType.AUTO },
+                            )
+
+                            Text(
+                                text = stringResource(R.string.scan_options_cover_storage_header),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(top = 4.dp),
+                            )
+                            ScanRadioOption(
+                                selected = coverStorageLocation == CoverStorageLocation.APP_STORAGE || isSafDirectory,
+                                title = stringResource(R.string.scan_options_cover_storage_app_title),
+                                subtitle = stringResource(R.string.scan_options_cover_storage_app_desc),
+                                onClick = { coverStorageLocation = CoverStorageLocation.APP_STORAGE },
+                            )
+                            ScanRadioOption(
+                                selected = coverStorageLocation == CoverStorageLocation.ROM_FOLDER && !isSafDirectory,
+                                enabled = !isSafDirectory,
+                                title = stringResource(R.string.scan_options_cover_storage_rom_title),
+                                subtitle =
+                                    if (isSafDirectory) {
+                                        stringResource(R.string.scan_options_repack_folder_saf_disabled)
+                                    } else {
+                                        stringResource(R.string.scan_options_cover_storage_rom_desc)
+                                    },
+                                onClick = { coverStorageLocation = CoverStorageLocation.ROM_FOLDER },
+                            )
+                        }
+                    }
+
                     Text(
                         text = stringResource(R.string.scan_options_repack_header),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary,
                     )
 
-                    Row(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .clickable(role = Role.RadioButton) { repackInFolder = false }
-                                .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.Top,
-                    ) {
-                        RadioButton(
-                            selected = !repackInFolder,
-                            onClick = null,
-                        )
-                        Column(modifier = Modifier.padding(start = 12.dp)) {
-                            Text(
-                                text = stringResource(R.string.scan_options_repack_cache_title),
-                                style = MaterialTheme.typography.titleSmall,
-                            )
-                            Text(
-                                text = stringResource(R.string.scan_options_repack_cache_desc),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-
-                    Row(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .alpha(if (isSafDirectory) 0.5f else 1.0f)
-                                .clickable(
-                                    enabled = !isSafDirectory,
-                                    role = Role.RadioButton,
-                                ) { repackInFolder = true }
-                                .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.Top,
-                    ) {
-                        RadioButton(
-                            selected = repackInFolder && !isSafDirectory,
-                            onClick = null,
-                            enabled = !isSafDirectory,
-                        )
-                        Column(modifier = Modifier.padding(start = 12.dp)) {
-                            Text(
-                                text = stringResource(R.string.scan_options_repack_folder_title),
-                                style = MaterialTheme.typography.titleSmall,
-                            )
-                            Text(
-                                text =
-                                    if (isSafDirectory) {
-                                        stringResource(R.string.scan_options_repack_folder_saf_disabled)
-                                    } else {
-                                        stringResource(R.string.scan_options_repack_folder_desc)
-                                    },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
+                    ScanRadioOption(
+                        selected = !repackInFolder,
+                        title = stringResource(R.string.scan_options_repack_cache_title),
+                        subtitle = stringResource(R.string.scan_options_repack_cache_desc),
+                        onClick = { repackInFolder = false },
+                    )
+                    ScanRadioOption(
+                        selected = repackInFolder && !isSafDirectory,
+                        enabled = !isSafDirectory,
+                        title = stringResource(R.string.scan_options_repack_folder_title),
+                        subtitle =
+                            if (isSafDirectory) {
+                                stringResource(R.string.scan_options_repack_folder_saf_disabled)
+                            } else {
+                                stringResource(R.string.scan_options_repack_folder_desc)
+                            },
+                        onClick = { repackInFolder = true },
+                    )
                 }
             },
             dismissButton = {
@@ -355,12 +390,24 @@ private fun RomsSettings(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        prefs.edit().putBoolean(LibraryIndexScheduler.KEY_DOWNLOAD_COVERS, downloadCovers).apply()
+                        val effectiveLocation =
+                            if (isSafDirectory) {
+                                CoverStorageLocation.APP_STORAGE
+                            } else {
+                                coverStorageLocation
+                            }
+                        prefs.edit()
+                            .putBoolean(LibraryIndexScheduler.KEY_DOWNLOAD_COVERS, downloadCovers)
+                            .putString(LibraryIndexScheduler.KEY_COVER_ART_TYPE, coverArtType.name)
+                            .putString(LibraryIndexScheduler.KEY_COVER_STORAGE_LOCATION, effectiveLocation.name)
+                            .apply()
                         showScanDialog = false
                         LibraryIndexScheduler.scheduleLibrarySync(
                             context,
                             ScanOptions(
                                 downloadCovers = downloadCovers,
+                                coverArtType = coverArtType,
+                                coverStorageLocation = effectiveLocation,
                                 repackInFolder = repackInFolder && !isSafDirectory,
                             ),
                         )
@@ -389,6 +436,47 @@ private fun RomsSettings(
                 title = { Text(text = stringResource(id = R.string.rescan)) },
                 onClick = { showScanDialog = true },
                 enabled = !indexingInProgress,
+            )
+        }
+    }
+}
+
+
+@Composable
+private fun ScanRadioOption(
+    selected: Boolean,
+    title: String,
+    subtitle: String,
+    enabled: Boolean = true,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .alpha(if (enabled) 1.0f else 0.5f)
+                .clickable(
+                    enabled = enabled,
+                    role = Role.RadioButton,
+                    onClick = onClick,
+                )
+                .padding(vertical = 3.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        RadioButton(
+            selected = selected,
+            onClick = null,
+            enabled = enabled,
+        )
+        Column(modifier = Modifier.padding(start = 10.dp)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }

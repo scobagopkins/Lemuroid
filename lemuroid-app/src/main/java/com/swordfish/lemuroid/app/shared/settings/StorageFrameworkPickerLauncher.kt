@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.os.Environment
 import android.provider.Settings
 import android.util.TypedValue
+import android.view.View
 import android.widget.CheckBox
 import android.widget.LinearLayout
 import android.widget.RadioButton
@@ -17,6 +18,8 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import com.swordfish.lemuroid.R
+import com.swordfish.lemuroid.app.shared.library.CoverArtType
+import com.swordfish.lemuroid.app.shared.library.CoverStorageLocation
 import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
 import com.swordfish.lemuroid.app.shared.library.ScanOptions
 import com.swordfish.lemuroid.app.utils.android.displayErrorDialog
@@ -228,6 +231,13 @@ class StorageFrameworkPickerLauncher : RetrogradeActivity() {
 
         val prefs = SharedPreferencesHelper.getLegacySharedPreferences(this)
         val savedDownloadCovers = prefs.getBoolean(LibraryIndexScheduler.KEY_DOWNLOAD_COVERS, false)
+        val savedArtType = CoverArtType.fromName(prefs.getString(LibraryIndexScheduler.KEY_COVER_ART_TYPE, null))
+        val savedStorageLoc =
+            if (isLocalStorage) {
+                CoverStorageLocation.fromName(prefs.getString(LibraryIndexScheduler.KEY_COVER_STORAGE_LOCATION, null))
+            } else {
+                CoverStorageLocation.APP_STORAGE
+            }
 
         val padH = dpToPx(24)
         val padV = dpToPx(12)
@@ -250,60 +260,142 @@ class StorageFrameworkPickerLauncher : RetrogradeActivity() {
             TextView(this).apply {
                 text = getString(R.string.scan_options_download_covers_desc)
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-                setPadding(dpToPx(32), 0, 0, gap * 2)
+                setPadding(dpToPx(32), 0, 0, gap)
                 alpha = 0.75f
             }
         container.addView(coversDesc)
+
+        val coversSubContainer =
+            LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(dpToPx(16), 0, 0, gap)
+                visibility = if (savedDownloadCovers) View.VISIBLE else View.GONE
+            }
+
+        coversSubContainer.addView(
+            TextView(this).apply {
+                text = getString(R.string.scan_options_cover_type_header)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+                setPadding(0, gap, 0, gap / 2)
+            },
+        )
+
+        val typeGroup = RadioGroup(this).apply { orientation = LinearLayout.VERTICAL }
+        val btnBoxart =
+            addRadioOption(
+                typeGroup,
+                getString(R.string.scan_options_cover_type_boxart_title),
+                getString(R.string.scan_options_cover_type_boxart_desc),
+                enabled = true,
+                gap = gap,
+            )
+        val btnSnap =
+            addRadioOption(
+                typeGroup,
+                getString(R.string.scan_options_cover_type_snap_title),
+                getString(R.string.scan_options_cover_type_snap_desc),
+                enabled = true,
+                gap = gap,
+            )
+        val btnTitle =
+            addRadioOption(
+                typeGroup,
+                getString(R.string.scan_options_cover_type_title_title),
+                getString(R.string.scan_options_cover_type_title_desc),
+                enabled = true,
+                gap = gap,
+            )
+        val btnAuto =
+            addRadioOption(
+                typeGroup,
+                getString(R.string.scan_options_cover_type_auto_title),
+                getString(R.string.scan_options_cover_type_auto_desc),
+                enabled = true,
+                gap = gap,
+            )
+        typeGroup.check(
+            when (savedArtType) {
+                CoverArtType.BOXART -> btnBoxart.id
+                CoverArtType.SNAP -> btnSnap.id
+                CoverArtType.TITLE -> btnTitle.id
+                CoverArtType.AUTO -> btnAuto.id
+            },
+        )
+        coversSubContainer.addView(typeGroup)
+
+        coversSubContainer.addView(
+            TextView(this).apply {
+                text = getString(R.string.scan_options_cover_storage_header)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+                setPadding(0, gap, 0, gap / 2)
+            },
+        )
+
+        val storageGroup = RadioGroup(this).apply { orientation = LinearLayout.VERTICAL }
+        val btnAppStorage =
+            addRadioOption(
+                storageGroup,
+                getString(R.string.scan_options_cover_storage_app_title),
+                getString(R.string.scan_options_cover_storage_app_desc),
+                enabled = true,
+                gap = gap,
+            )
+        val btnRomStorage =
+            addRadioOption(
+                storageGroup,
+                getString(R.string.scan_options_cover_storage_rom_title),
+                if (isLocalStorage) {
+                    getString(R.string.scan_options_cover_storage_rom_desc)
+                } else {
+                    getString(R.string.scan_options_repack_folder_saf_disabled)
+                },
+                enabled = isLocalStorage,
+                gap = gap,
+            )
+        storageGroup.check(
+            if (isLocalStorage && savedStorageLoc == CoverStorageLocation.ROM_FOLDER) {
+                btnRomStorage.id
+            } else {
+                btnAppStorage.id
+            },
+        )
+        coversSubContainer.addView(storageGroup)
+        container.addView(coversSubContainer)
+
+        coversCheck.setOnCheckedChangeListener { _, isChecked ->
+            coversSubContainer.visibility = if (isChecked) View.VISIBLE else View.GONE
+        }
 
         val header =
             TextView(this).apply {
                 text = getString(R.string.scan_options_repack_header)
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-                setPadding(0, 0, 0, gap)
+                setPadding(0, gap, 0, gap / 2)
             }
         container.addView(header)
 
+        val radioGroup = RadioGroup(this).apply { orientation = LinearLayout.VERTICAL }
         val radioCache =
-            RadioButton(this).apply {
-                id = android.view.View.generateViewId()
-                text = getString(R.string.scan_options_repack_cache_title)
-            }
-        val radioCacheDesc =
-            TextView(this).apply {
-                text = getString(R.string.scan_options_repack_cache_desc)
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-                setPadding(dpToPx(32), 0, 0, gap)
-                alpha = 0.75f
-            }
-
+            addRadioOption(
+                radioGroup,
+                getString(R.string.scan_options_repack_cache_title),
+                getString(R.string.scan_options_repack_cache_desc),
+                enabled = true,
+                gap = gap,
+            )
         val radioFolder =
-            RadioButton(this).apply {
-                id = android.view.View.generateViewId()
-                text = getString(R.string.scan_options_repack_folder_title)
-                isEnabled = isLocalStorage
-            }
-        val radioFolderDesc =
-            TextView(this).apply {
-                text =
-                    if (isLocalStorage) {
-                        getString(R.string.scan_options_repack_folder_desc)
-                    } else {
-                        getString(R.string.scan_options_repack_folder_saf_disabled)
-                    }
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-                setPadding(dpToPx(32), 0, 0, gap)
-                alpha = if (isLocalStorage) 0.75f else 0.5f
-            }
-
-        val radioGroup =
-            RadioGroup(this).apply {
-                orientation = LinearLayout.VERTICAL
-                addView(radioCache)
-                addView(radioCacheDesc)
-                addView(radioFolder)
-                addView(radioFolderDesc)
-                check(radioCache.id)
-            }
+            addRadioOption(
+                radioGroup,
+                getString(R.string.scan_options_repack_folder_title),
+                if (isLocalStorage) {
+                    getString(R.string.scan_options_repack_folder_desc)
+                } else {
+                    getString(R.string.scan_options_repack_folder_saf_disabled)
+                },
+                enabled = isLocalStorage,
+                gap = gap,
+            )
+        radioGroup.check(radioCache.id)
         container.addView(radioGroup)
 
         val scrollView = ScrollView(this).apply { addView(container) }
@@ -314,12 +406,31 @@ class StorageFrameworkPickerLauncher : RetrogradeActivity() {
                 .setView(scrollView)
                 .setPositiveButton(R.string.scan_options_action_scan) { _, _ ->
                     val download = coversCheck.isChecked
+                    val artType =
+                        when (typeGroup.checkedRadioButtonId) {
+                            btnSnap.id -> CoverArtType.SNAP
+                            btnTitle.id -> CoverArtType.TITLE
+                            btnAuto.id -> CoverArtType.AUTO
+                            else -> CoverArtType.BOXART
+                        }
+                    val storageLoc =
+                        if (isLocalStorage && storageGroup.checkedRadioButtonId == btnRomStorage.id) {
+                            CoverStorageLocation.ROM_FOLDER
+                        } else {
+                            CoverStorageLocation.APP_STORAGE
+                        }
                     val repackFolder = isLocalStorage && radioGroup.checkedRadioButtonId == radioFolder.id
-                    prefs.edit().putBoolean(LibraryIndexScheduler.KEY_DOWNLOAD_COVERS, download).apply()
+                    prefs.edit()
+                        .putBoolean(LibraryIndexScheduler.KEY_DOWNLOAD_COVERS, download)
+                        .putString(LibraryIndexScheduler.KEY_COVER_ART_TYPE, artType.name)
+                        .putString(LibraryIndexScheduler.KEY_COVER_STORAGE_LOCATION, storageLoc.name)
+                        .apply()
                     LibraryIndexScheduler.scheduleLibrarySync(
                         applicationContext,
                         ScanOptions(
                             downloadCovers = download,
+                            coverArtType = artType,
+                            coverStorageLocation = storageLoc,
                             repackInFolder = repackFolder,
                         ),
                     )
@@ -332,6 +443,34 @@ class StorageFrameworkPickerLauncher : RetrogradeActivity() {
                     finish()
                 }
                 .show()
+    }
+
+    private fun addRadioOption(
+        group: RadioGroup,
+        title: String,
+        subtitle: String,
+        enabled: Boolean,
+        gap: Int,
+    ): RadioButton {
+        val radio =
+            RadioButton(this).apply {
+                id = View.generateViewId()
+                text = title
+                isEnabled = enabled
+            }
+        val desc =
+            TextView(this).apply {
+                text = subtitle
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+                setPadding(dpToPx(32), 0, 0, gap)
+                alpha = if (enabled) 0.75f else 0.5f
+                if (enabled) {
+                    setOnClickListener { group.check(radio.id) }
+                }
+            }
+        group.addView(radio)
+        group.addView(desc)
+        return radio
     }
 
     private fun dpToPx(dp: Int): Int =

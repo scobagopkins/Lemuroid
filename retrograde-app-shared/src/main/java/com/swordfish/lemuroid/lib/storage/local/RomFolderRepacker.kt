@@ -44,7 +44,7 @@ class RomFolderRepacker(
         onProgress: suspend (completed: Int, total: Int, currentFile: String) -> Unit = { _, _, _ -> },
     ): RepackSummary =
         withContext(Dispatchers.IO) {
-            val rootDir = resolveWritableLocalRoot()
+            val rootDir = resolveWritableLocalRoot(context, directoriesManager)
             if (rootDir == null) {
                 return@withContext RepackSummary(0, 0, 0, safUnsupported = true)
             }
@@ -87,22 +87,7 @@ class RomFolderRepacker(
             RepackSummary(converted, skipped, failed)
         }
 
-    private fun resolveWritableLocalRoot(): File? {
-        val prefs = SharedPreferencesHelper.getLegacySharedPreferences(context)
-        val legacyPath = prefs.getString(context.getString(R.string.pref_key_legacy_external_folder), null)
-        if (!legacyPath.isNullOrBlank()) {
-            val dir = File(legacyPath)
-            return if (dir.isDirectory && dir.canWrite()) dir else null
-        }
-
-        val safValue = prefs.getString(context.getString(R.string.pref_key_extenral_folder), null)
-        if (!safValue.isNullOrBlank() && safValue.startsWith("content://")) {
-            return null
-        }
-
-        val internal = directoriesManager.getInternalRomsDirectory()
-        return if (internal.isDirectory && internal.canWrite()) internal else null
-    }
+    // Root resolution shared via companion object below.
 
     private fun repackSingleArchive(file: File): FileOutcome {
         return when {
@@ -325,7 +310,27 @@ class RomFolderRepacker(
     }
 
     companion object {
-        private val COLECO_EXTENSIONS = setOf("col", "cv", "rom")
+        fun resolveWritableLocalRoot(
+            context: Context,
+            directoriesManager: DirectoriesManager,
+        ): File? {
+            val prefs = SharedPreferencesHelper.getLegacySharedPreferences(context)
+            val legacyPath = prefs.getString(context.getString(R.string.pref_key_legacy_external_folder), null)
+            if (!legacyPath.isNullOrBlank()) {
+                val dir = File(legacyPath)
+                return if (dir.isDirectory && dir.canWrite()) dir else null
+            }
+
+            val safValue = prefs.getString(context.getString(R.string.pref_key_extenral_folder), null)
+            if (!safValue.isNullOrBlank() && safValue.startsWith("content://")) {
+                return null
+            }
+
+            val internal = directoriesManager.getInternalRomsDirectory()
+            return if (internal.isDirectory && internal.canWrite()) internal else null
+        }
+
+        private val COLECO_EXTENSIONS = setOf("col", "rom", "cv")
         private val SINGLE_DISC_EXTENSIONS = setOf("iso", "chd", "mdf")
     }
 }
