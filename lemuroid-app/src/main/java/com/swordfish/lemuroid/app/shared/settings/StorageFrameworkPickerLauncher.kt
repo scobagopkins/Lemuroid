@@ -8,9 +8,17 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.provider.Settings
+import android.util.TypedValue
+import android.widget.CheckBox
+import android.widget.LinearLayout
+import android.widget.RadioButton
+import android.widget.RadioGroup
+import android.widget.ScrollView
+import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import com.swordfish.lemuroid.R
 import com.swordfish.lemuroid.app.shared.library.LibraryIndexScheduler
+import com.swordfish.lemuroid.app.shared.library.ScanOptions
 import com.swordfish.lemuroid.app.utils.android.displayErrorDialog
 import com.swordfish.lemuroid.lib.android.RetrogradeActivity
 import com.swordfish.lemuroid.lib.preferences.SharedPreferencesHelper
@@ -132,8 +140,7 @@ class StorageFrameworkPickerLauncher : RetrogradeActivity() {
             apply()
         }
 
-        startLibraryIndexWork()
-        finish()
+        showScanOptionsDialog(isLocalStorage = true)
     }
 
     private fun launchSystemSafPicker() {
@@ -191,7 +198,8 @@ class StorageFrameworkPickerLauncher : RetrogradeActivity() {
                 }
             }
 
-            startLibraryIndexWork()
+            showScanOptionsDialog(isLocalStorage = false)
+            return
         }
         finish()
     }
@@ -215,9 +223,123 @@ class StorageFrameworkPickerLauncher : RetrogradeActivity() {
         contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
 
-    private fun startLibraryIndexWork() {
-        LibraryIndexScheduler.scheduleLibrarySync(applicationContext)
+    private fun showScanOptionsDialog(isLocalStorage: Boolean) {
+        currentDialog?.dismiss()
+
+        val prefs = SharedPreferencesHelper.getLegacySharedPreferences(this)
+        val savedDownloadCovers = prefs.getBoolean(LibraryIndexScheduler.KEY_DOWNLOAD_COVERS, false)
+
+        val padH = dpToPx(24)
+        val padV = dpToPx(12)
+        val gap = dpToPx(8)
+
+        val container =
+            LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(padH, padV, padH, padV)
+            }
+
+        val coversCheck =
+            CheckBox(this).apply {
+                text = getString(R.string.scan_options_download_covers_title)
+                isChecked = savedDownloadCovers
+            }
+        container.addView(coversCheck)
+
+        val coversDesc =
+            TextView(this).apply {
+                text = getString(R.string.scan_options_download_covers_desc)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+                setPadding(dpToPx(32), 0, 0, gap * 2)
+                alpha = 0.75f
+            }
+        container.addView(coversDesc)
+
+        val header =
+            TextView(this).apply {
+                text = getString(R.string.scan_options_repack_header)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+                setPadding(0, 0, 0, gap)
+            }
+        container.addView(header)
+
+        val radioCache =
+            RadioButton(this).apply {
+                id = android.view.View.generateViewId()
+                text = getString(R.string.scan_options_repack_cache_title)
+            }
+        val radioCacheDesc =
+            TextView(this).apply {
+                text = getString(R.string.scan_options_repack_cache_desc)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+                setPadding(dpToPx(32), 0, 0, gap)
+                alpha = 0.75f
+            }
+
+        val radioFolder =
+            RadioButton(this).apply {
+                id = android.view.View.generateViewId()
+                text = getString(R.string.scan_options_repack_folder_title)
+                isEnabled = isLocalStorage
+            }
+        val radioFolderDesc =
+            TextView(this).apply {
+                text =
+                    if (isLocalStorage) {
+                        getString(R.string.scan_options_repack_folder_desc)
+                    } else {
+                        getString(R.string.scan_options_repack_folder_saf_disabled)
+                    }
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+                setPadding(dpToPx(32), 0, 0, gap)
+                alpha = if (isLocalStorage) 0.75f else 0.5f
+            }
+
+        val radioGroup =
+            RadioGroup(this).apply {
+                orientation = LinearLayout.VERTICAL
+                addView(radioCache)
+                addView(radioCacheDesc)
+                addView(radioFolder)
+                addView(radioFolderDesc)
+                check(radioCache.id)
+            }
+        container.addView(radioGroup)
+
+        val scrollView = ScrollView(this).apply { addView(container) }
+
+        currentDialog =
+            AlertDialog.Builder(this)
+                .setTitle(R.string.scan_options_title)
+                .setView(scrollView)
+                .setPositiveButton(R.string.scan_options_action_scan) { _, _ ->
+                    val download = coversCheck.isChecked
+                    val repackFolder = isLocalStorage && radioGroup.checkedRadioButtonId == radioFolder.id
+                    prefs.edit().putBoolean(LibraryIndexScheduler.KEY_DOWNLOAD_COVERS, download).apply()
+                    LibraryIndexScheduler.scheduleLibrarySync(
+                        applicationContext,
+                        ScanOptions(
+                            downloadCovers = download,
+                            repackInFolder = repackFolder,
+                        ),
+                    )
+                    finish()
+                }
+                .setNegativeButton(R.string.scan_options_action_skip) { _, _ ->
+                    finish()
+                }
+                .setOnCancelListener {
+                    finish()
+                }
+                .show()
     }
+
+    private fun dpToPx(dp: Int): Int =
+        TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP,
+            dp.toFloat(),
+            resources.displayMetrics,
+        ).toInt()
 
     companion object {
         private const val REQUEST_CODE_PICK_FOLDER = 1

@@ -45,7 +45,13 @@ class NotificationsManager(private val applicationContext: Context) {
         return builder.build()
     }
 
-    fun libraryIndexingNotification(): Notification {
+    fun libraryIndexingNotification(
+        title: String = applicationContext.getString(R.string.library_index_notification_title),
+        message: String = applicationContext.getString(R.string.library_index_notification_message),
+        progress: Int = 0,
+        max: Int = 100,
+        indeterminate: Boolean = true,
+    ): Notification {
         createDefaultNotificationChannel()
 
         val broadcastIntent = Intent(applicationContext, LibraryIndexBroadcastReceiver::class.java)
@@ -60,9 +66,10 @@ class NotificationsManager(private val applicationContext: Context) {
         val builder =
             NotificationCompat.Builder(applicationContext, DEFAULT_CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_lemuroid_tiny)
-                .setContentTitle(applicationContext.getString(R.string.library_index_notification_title))
-                .setContentText(applicationContext.getString(R.string.library_index_notification_message))
-                .setProgress(100, 0, true)
+                .setContentTitle(title)
+                .setContentText(message)
+                .setProgress(max, progress, indeterminate)
+                .setOnlyAlertOnce(true)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
                 .addAction(
                     NotificationCompat.Action(

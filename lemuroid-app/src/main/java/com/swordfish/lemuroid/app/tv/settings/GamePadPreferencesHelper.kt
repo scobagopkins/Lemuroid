@@ -145,7 +145,7 @@ class GamePadPreferencesHelper(private val inputDeviceManager: InputDeviceManage
                 val preference = preferenceScreen.findPreference<Preference>(preferenceKey)
                 preference?.summaryProvider =
                     Preference.SummaryProvider<Preference> {
-                        shortcuts[type]?.name ?: ""
+                        shortcuts[type]?.name?.ifBlank { it.context.getString(R.string.shortcut_not_set) } ?: ""
                     }
             }
     }
@@ -198,7 +198,7 @@ class GamePadPreferencesHelper(private val inputDeviceManager: InputDeviceManage
     ): Preference? {
         val preference = Preference(context)
         preference.key = InputDeviceManager.computeGameShortcutPreference(inputDevice, type)
-        preference.title = type.displayName()
+        preference.title = type.displayName(context)
         preference.setOnPreferenceClickListener {
             displayShortcutChangeDialog(context, inputDevice, type)
             true

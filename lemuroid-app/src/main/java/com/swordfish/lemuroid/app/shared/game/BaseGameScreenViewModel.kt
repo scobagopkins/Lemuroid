@@ -255,16 +255,20 @@ class BaseGameScreenViewModel(
     fun saveQuickSave() {
         Timber.d("Saving quick save")
         if (loadingState.value) return
-        withLoading {
-            saves.saveQuickSave()
+        viewModelScope.launch {
+            withLoading {
+                saves.saveQuickSave()
+            }
         }
     }
 
     fun loadQuickSave() {
         Timber.d("Loading quick save")
         if (loadingState.value) return
-        withLoading {
-            saves.loadQuickSave()
+        viewModelScope.launch {
+            withLoading {
+                saves.loadQuickSave()
+            }
         }
     }
 

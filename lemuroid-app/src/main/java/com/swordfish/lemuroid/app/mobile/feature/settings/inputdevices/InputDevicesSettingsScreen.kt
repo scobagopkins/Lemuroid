@@ -82,9 +82,10 @@ private fun DeviceShortcutBinding(
     device: InputDevice,
     shortcut: GameShortcut,
 ) {
+    val subtitleText = shortcut.name.ifBlank { stringResource(R.string.shortcut_not_set) }
     LemuroidSettingsMenuLink(
-        title = { Text(text = shortcut.type.displayName()) },
-        subtitle = { Text(text = shortcut.name) },
+        title = { Text(text = shortcut.type.displayName(context)) },
+        subtitle = { Text(text = subtitleText) },
         onClick = {
             val intent =
                 Intent(context, GamePadShortcutBindingActivity::class.java).apply {

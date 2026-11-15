@@ -185,4 +185,30 @@
     <string name="tilt_configuration_buttons_l_r">L - R</string>
     <string name="tilt_configuration_buttons_l1_r1">L1 - R1</string>
     <string name="tilt_configuration_buttons_l2_r2">L2 - R2</string>
+    <string name="shortcut_type_menu">Меню игры</string>
+    <string name="shortcut_type_quick_save">Быстрое сохранение</string>
+    <string name="shortcut_type_quick_load">Быстрая загрузка</string>
+    <string name="shortcut_type_toggle_fast_forward">Ускорение</string>
+    <string name="shortcut_not_set">Не назначено (нажмите для привязки)</string>
+    <string name="shortcut_binding_clear">Очистить</string>
+    <string name="shortcut_binding_pressed">Нажато: %1$s</string>
+    <string name="shortcut_binding_release_to_save">Выбрано: %1$s — отпустите кнопки</string>
+    <string name="game_toast_quick_save_empty">Быстрое сохранение ещё не создано</string>
+    <string name="game_toast_quick_save_unsupported">Это ядро не поддерживает сохранения состояний</string>
+
+    <string name="scan_options_title">Параметры сканирования</string>
+    <string name="scan_options_download_covers_title">Скачать обложки игр</string>
+    <string name="scan_options_download_covers_desc">Сохраняются в отдельную папку приложения — папка с играми остаётся чистой</string>
+    <string name="scan_options_repack_header">Обработка архивов и форматов</string>
+    <string name="scan_options_repack_cache_title">Переупаковывать в кэш при запуске (как сейчас)</string>
+    <string name="scan_options_repack_cache_desc">Файлы в папке не изменяются; конвертация происходит в кэш при запуске, если эмулятору нужен другой формат</string>
+    <string name="scan_options_repack_folder_title">Переупаковать игры в папке</string>
+    <string name="scan_options_repack_folder_desc">Конвертирует аркадные .7z и BIOS в .zip и распаковывает консольные ROM (.7z/.zip → .sfc/.nes/.col и др.) прямо в папке для запуска без кэша</string>
+    <string name="scan_options_repack_folder_saf_disabled">Доступно только при выборе папки через встроенный выбор (с полным доступом к файлам)</string>
+    <string name="scan_options_action_scan">Сканировать</string>
+    <string name="scan_options_action_skip">Не сканировать</string>
+    <string name="library_index_repack_title">Подготовка и переупаковка ROM-файлов…</string>
+    <string name="library_index_repack_progress">%1$d / %2$d — %3$s</string>
+    <string name="library_index_covers_title">Скачивание обложек игр…</string>
+    <string name="library_index_covers_progress">%1$d / %2$d</string>
 </resources>

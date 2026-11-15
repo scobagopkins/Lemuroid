@@ -246,4 +246,31 @@
     <string name="tilt_configuration_buttons_l1_r1">L1 - R1</string>
     <string name="tilt_configuration_buttons_l2_r2">L2 - R2</string>
 
+    <string name="shortcut_type_menu">Game menu</string>
+    <string name="shortcut_type_quick_save">Quick save</string>
+    <string name="shortcut_type_quick_load">Quick load</string>
+    <string name="shortcut_type_toggle_fast_forward">Fast-forward</string>
+    <string name="shortcut_not_set">Not assigned (tap to bind)</string>
+    <string name="shortcut_binding_clear">Clear</string>
+    <string name="shortcut_binding_pressed">Pressed: %1$s</string>
+    <string name="shortcut_binding_release_to_save">Selected: %1$s — release buttons to save</string>
+    <string name="game_toast_quick_save_empty">No quick save available yet</string>
+    <string name="game_toast_quick_save_unsupported">This core does not support save states</string>
+
+    <string name="scan_options_title">Scan options</string>
+    <string name="scan_options_download_covers_title">Download game cover art</string>
+    <string name="scan_options_download_covers_desc">Saves artwork to a separate app folder so your ROM folders stay clean</string>
+    <string name="scan_options_repack_header">Archive &amp; format handling</string>
+    <string name="scan_options_repack_cache_title">Repack to cache on launch (default)</string>
+    <string name="scan_options_repack_cache_desc">Keeps files in your folder untouched; extracts or repacks into app cache when launching a game</string>
+    <string name="scan_options_repack_folder_title">Repack games in folder now</string>
+    <string name="scan_options_repack_folder_desc">Converts arcade/BIOS .7z to .zip and extracts console ROMs (.7z/.zip → .sfc/.nes/.col, etc.) right in the folder for instant launch with zero cache</string>
+    <string name="scan_options_repack_folder_saf_disabled">Requires full file access folder picker (unavailable in system SAF read-only mode)</string>
+    <string name="scan_options_action_scan">Start scan</string>
+    <string name="scan_options_action_skip">Skip scan</string>
+    <string name="library_index_repack_title">Preparing &amp; repacking ROMs…</string>
+    <string name="library_index_repack_progress">%1$d / %2$d — %3$s</string>
+    <string name="library_index_covers_title">Downloading game covers…</string>
+    <string name="library_index_covers_progress">%1$d / %2$d</string>
+
 </resources>

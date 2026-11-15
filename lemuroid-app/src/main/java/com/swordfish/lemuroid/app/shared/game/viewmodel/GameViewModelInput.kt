@@ -2,6 +2,7 @@ package com.swordfish.lemuroid.app.shared.game.viewmodel
 
 import android.content.Context
 import android.graphics.PointF
+import android.os.SystemClock
 import android.view.InputDevice
 import android.view.KeyEvent
 import android.view.MotionEvent
@@ -13,6 +14,7 @@ import com.swordfish.lemuroid.app.shared.input.InputDeviceManager
 import com.swordfish.lemuroid.app.shared.input.InputKey
 import com.swordfish.lemuroid.app.shared.input.inputclass.getInputClass
 import com.swordfish.lemuroid.app.shared.settings.ControllerConfigsManager
+import com.swordfish.lemuroid.app.shared.settings.GameShortcut
 import com.swordfish.lemuroid.app.shared.settings.GameShortcutType
 import com.swordfish.lemuroid.common.coroutines.launchOnState
 import com.swordfish.lemuroid.common.coroutines.safeCollect
@@ -32,6 +34,7 @@ import com.swordfish.libretrodroid.GLRetroView.Companion.MOTION_SOURCE_ANALOG_RI
 import com.swordfish.libretrodroid.GLRetroView.Companion.MOTION_SOURCE_DPAD
 import com.swordfish.touchinput.radial.sensors.TiltConfiguration
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -62,7 +65,12 @@ class GameViewModelInput(
 ) : DefaultLifecycleObserver {
     private data class SingleAxisEvent(val axis: Int, val action: Int, val keyCode: Int, val port: Int)
 
+    private data class DeferredKeyPress(val bindKeyCode: Int, val port: Int)
+
     private val controllerConfigsState = MutableStateFlow<Map<Int, ControllerConfig>>(mapOf())
+    private val activePressedKeys = mutableMapOf<Int, Long>()
+    private val deferredKeyPresses = linkedMapOf<Int, DeferredKeyPress>()
+    private val suppressedUpKeys = mutableSetOf<Int>()
     private val keyEventsFlow: MutableSharedFlow<KeyEvent?> = MutableSharedFlow()
     private val motionEventsFlow: MutableSharedFlow<MotionEvent> = MutableSharedFlow()
 
@@ -261,13 +269,20 @@ class GameViewModelInput(
         }
     }
 
+    override fun onPause(owner: LifecycleOwner) {
+        super.onPause(owner)
+        activePressedKeys.clear()
+        deferredKeyPresses.clear()
+        suppressedUpKeys.clear()
+    }
+
     private suspend fun initializeGamePadShortcutsFlow() {
         inputDeviceManager.getGameShortcutsObservable()
             .distinctUntilChanged()
             .safeCollect { allShortcuts ->
                 allShortcuts.values
                     .firstNotNullOfOrNull { shortcuts ->
-                        shortcuts.firstOrNull { it.type == GameShortcutType.MENU }
+                        shortcuts.firstOrNull { it.type == GameShortcutType.MENU && it.keys.isNotEmpty() }
                     }
                     ?.let {
                         val message =
@@ -280,9 +295,74 @@ class GameViewModelInput(
             }
     }
 
-    private suspend fun initializeGamePadKeysFlow() {
-        val pressedKeys = mutableSetOf<Int>()
+    private fun isMetaDeferrableKey(
+        rawKeyCode: Int,
+        bindKeyCode: Int,
+    ): Boolean {
+        return rawKeyCode in META_SHORTCUT_KEYS || bindKeyCode in META_SHORTCUT_KEYS
+    }
 
+    /**
+     * Prevents holding an action button (e.g., holding A to run/charge) and tapping Start/Select
+     * from triggering a "Start + A" or "Select + A" shortcut accidentally.
+     * Asymmetric shortcuts ([meta, action]) only trigger when the leading modifier was pressed first
+     * or within a tight 45ms chord window.
+     */
+    private fun matchesShortcutSafely(
+        shortcut: GameShortcut,
+        triggerKeyCode: Int,
+    ): Boolean {
+        val keys = shortcut.keys
+        if (keys.isEmpty() || !activePressedKeys.keys.containsAll(keys)) return false
+        val ordered = keys.toList()
+        if (ordered.size != 2) return true
+
+        val firstKey = ordered[0]
+        val secondKey = ordered[1]
+        val bothMeta = firstKey in META_SHORTCUT_KEYS && secondKey in META_SHORTCUT_KEYS
+        if (bothMeta) return true
+
+        val firstDown = activePressedKeys[firstKey] ?: return false
+        val secondDown = activePressedKeys[secondKey] ?: return false
+        if (firstKey in META_SHORTCUT_KEYS) {
+            return triggerKeyCode == secondKey || firstDown <= secondDown || abs(secondDown - firstDown) <= CHORD_WINDOW_MS
+        }
+        // Both keys are gameplay buttons: require exact order (press first, then second)
+        return triggerKeyCode == secondKey && firstDown <= secondDown
+    }
+
+    private fun shouldDeferKeyDown(
+        rawKeyCode: Int,
+        bindKeyCode: Int,
+        deviceShortcuts: List<GameShortcut>,
+    ): Boolean {
+        if (!isMetaDeferrableKey(rawKeyCode, bindKeyCode)) return false
+        return deviceShortcuts.any { shortcut ->
+            shortcut.keys.contains(rawKeyCode) &&
+                (shortcut.keys.firstOrNull() == rawKeyCode || shortcut.keys.all { it in META_SHORTCUT_KEYS })
+        }
+    }
+
+    private fun flushDeferredKeyPressesNotCompatibleWith(
+        rawKeyCode: Int,
+        deviceShortcuts: List<GameShortcut>,
+    ) {
+        if (deferredKeyPresses.isEmpty()) return
+        val toFlush = mutableListOf<Int>()
+        deferredKeyPresses.forEach { (deferredKey, press) ->
+            val canPair =
+                deviceShortcuts.any { shortcut ->
+                    shortcut.keys.contains(deferredKey) && shortcut.keys.contains(rawKeyCode)
+                }
+            if (!canPair) {
+                retroGameView.retroGameView?.sendKeyEvent(KeyEvent.ACTION_DOWN, press.bindKeyCode, press.port)
+                toFlush.add(deferredKey)
+            }
+        }
+        toFlush.forEach { deferredKeyPresses.remove(it) }
+    }
+
+    private suspend fun initializeGamePadKeysFlow() {
         val filteredKeyEvents =
             keyEventsFlow
                 .filterNotNull()
@@ -300,32 +380,80 @@ class GameViewModelInput(
             )
 
         combinedObservable
-            .onStart { pressedKeys.clear() }
-            .onCompletion { pressedKeys.clear() }
+            .onStart {
+                activePressedKeys.clear()
+                deferredKeyPresses.clear()
+                suppressedUpKeys.clear()
+            }
+            .onCompletion {
+                activePressedKeys.clear()
+                deferredKeyPresses.clear()
+                suppressedUpKeys.clear()
+            }
             .safeCollect { (shortcuts, ports, bindings, event) ->
                 val (device, action, keyCode) = event
                 val port = ports(device)
                 val bindKeyCode = bindings(device)[InputKey(keyCode)]?.keyCode ?: keyCode
 
                 if (port == 0) {
+                    val deviceShortcuts = shortcuts[device]?.filter { it.keys.isNotEmpty() }.orEmpty()
+
                     if (bindKeyCode == KeyEvent.KEYCODE_BUTTON_MODE && action == KeyEvent.ACTION_DOWN) {
+                        suppressedUpKeys.add(keyCode)
+                        activePressedKeys.clear()
+                        deferredKeyPresses.clear()
                         sideEffects.showMenu(tilt, this)
                         return@safeCollect
                     }
 
                     if (action == KeyEvent.ACTION_DOWN) {
-                        pressedKeys.add(keyCode)
-                    } else if (action == KeyEvent.ACTION_UP) {
-                        pressedKeys.remove(keyCode)
-                    }
+                        suppressedUpKeys.remove(keyCode)
+                        activePressedKeys[keyCode] = SystemClock.elapsedRealtime()
 
-                    shortcuts[device]?.forEach { shortcut ->
-                        if (shortcut.keys.isNotEmpty() && pressedKeys.containsAll(shortcut.keys)) {
-                            when (shortcut.type) {
+                        val matched = deviceShortcuts.firstOrNull { matchesShortcutSafely(it, keyCode) }
+                        if (matched != null) {
+                            matched.keys.forEach { shortcutKey ->
+                                deferredKeyPresses.remove(shortcutKey)
+                                suppressedUpKeys.add(shortcutKey)
+                            }
+                            if (matched.type == GameShortcutType.MENU) {
+                                activePressedKeys.clear()
+                                deferredKeyPresses.clear()
+                            }
+                            when (matched.type) {
                                 GameShortcutType.MENU -> sideEffects.showMenu(tilt, this)
                                 GameShortcutType.QUICK_LOAD -> sideEffects.loadQuickSave()
                                 GameShortcutType.QUICK_SAVE -> sideEffects.saveQuickSave()
                                 GameShortcutType.TOGGLE_FAST_FORWARD -> sideEffects.toggleFastForward()
+                            }
+                            return@safeCollect
+                        }
+
+                        flushDeferredKeyPressesNotCompatibleWith(keyCode, deviceShortcuts)
+                        if (shouldDeferKeyDown(keyCode, bindKeyCode, deviceShortcuts)) {
+                            deferredKeyPresses[keyCode] = DeferredKeyPress(bindKeyCode, port)
+                            return@safeCollect
+                        }
+                    } else if (action == KeyEvent.ACTION_UP) {
+                        activePressedKeys.remove(keyCode)
+                        if (suppressedUpKeys.remove(keyCode)) {
+                            return@safeCollect
+                        }
+                        val deferred = deferredKeyPresses.remove(keyCode)
+                        if (deferred != null) {
+                            // Released modifier without completing a shortcut: deliver a clean 40ms pulse to the core
+                            scope.launch {
+                                retroGameView.retroGameView?.sendKeyEvent(
+                                    KeyEvent.ACTION_DOWN,
+                                    deferred.bindKeyCode,
+                                    deferred.port,
+                                )
+                                delay(MODIFIER_PULSE_DURATION_MS)
+                                retroGameView.retroGameView?.sendKeyEvent(
+                                    KeyEvent.ACTION_UP,
+                                    deferred.bindKeyCode,
+                                    deferred.port,
+                                )
                             }
                             return@safeCollect
                         }
@@ -396,5 +524,18 @@ class GameViewModelInput(
         } catch (e: Exception) {
             Timber.e(e)
         }
+    }
+
+    companion object {
+        private const val CHORD_WINDOW_MS = 45L
+        private const val MODIFIER_PULSE_DURATION_MS = 40L
+        private val META_SHORTCUT_KEYS =
+            setOf(
+                KeyEvent.KEYCODE_BUTTON_SELECT,
+                KeyEvent.KEYCODE_BUTTON_START,
+                KeyEvent.KEYCODE_BUTTON_THUMBL,
+                KeyEvent.KEYCODE_BUTTON_THUMBR,
+                KeyEvent.KEYCODE_BUTTON_MODE,
+            )
     }
 }

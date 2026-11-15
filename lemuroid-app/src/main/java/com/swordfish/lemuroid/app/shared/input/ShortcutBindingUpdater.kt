@@ -9,14 +9,26 @@ import com.swordfish.lemuroid.app.shared.settings.GameShortcutType
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.runBlocking
 
+/**
+ * Captures a two-button combo in press order (e.g., Select then A -> Select + A).
+ * Saves once both buttons are released so the final KEY_UP never leaks to the screen below.
+ */
 @OptIn(DelicateCoroutinesApi::class)
-class ShortcutBindingUpdater(private val inputDeviceManager: InputDeviceManager, intent: Intent) {
+class ShortcutBindingUpdater(
+    private val inputDeviceManager: InputDeviceManager,
+    intent: Intent,
+    private val onCapturedKeysChanged: (List<Int>) -> Unit = {},
+) {
     val extras = parseExtras(intent)
 
-    private var firstKeyCodeInCombo: Int? = null
+    private val capturedKeyCodes = mutableListOf<Int>()
+    private val currentlyHeldKeys = mutableSetOf<Int>()
+
+    var isCompleted: Boolean = false
+        private set
 
     fun getTitle(context: Context): String {
-        return context.getString(R.string.shortcut_binding_update_title, extras.shortcutType.displayName())
+        return context.getString(R.string.shortcut_binding_update_title, extras.shortcutType.displayName(context))
     }
 
     fun getMessage(context: Context): String {
@@ -31,25 +43,47 @@ class ShortcutBindingUpdater(private val inputDeviceManager: InputDeviceManager,
         }
     }
 
+    fun clearBinding() {
+        runBlocking {
+            inputDeviceManager.clearShortcutBinding(extras.device, extras.shortcutType)
+        }
+        isCompleted = true
+    }
+
     private fun onKeyDown(event: KeyEvent): Boolean {
-        return isTargetedDevice(event.device)
+        if (!isTargetedDevice(event.device) || isSystemIgnoredKey(event.keyCode)) return false
+        if (event.repeatCount > 0) return true
+
+        currentlyHeldKeys.add(event.keyCode)
+        if (capturedKeyCodes.size < 2 && event.keyCode !in capturedKeyCodes) {
+            capturedKeyCodes.add(event.keyCode)
+            onCapturedKeysChanged(capturedKeyCodes.toList())
+        }
+        return true
     }
 
     private fun onKeyUp(event: KeyEvent): Boolean {
-        if (!isTargetedDevice(event.device)) return false
+        if (!isTargetedDevice(event.device) || isSystemIgnoredKey(event.keyCode)) return false
 
-        if (firstKeyCodeInCombo == null) {
-            firstKeyCodeInCombo = event.keyCode
-            return false // wait for second key
-        } else {
-            if (firstKeyCodeInCombo == event.keyCode) return false // ignore same key press
-            val combo = Pair(InputKey(firstKeyCodeInCombo!!), InputKey(event.keyCode))
-            // TODO runBlocking here should go away.
+        currentlyHeldKeys.remove(event.keyCode)
+        if (capturedKeyCodes.size == 2 && currentlyHeldKeys.isEmpty() && !isCompleted) {
+            val combo = Pair(InputKey(capturedKeyCodes[0]), InputKey(capturedKeyCodes[1]))
             runBlocking {
                 inputDeviceManager.updateShortcutBinding(event.device, extras.shortcutType, combo)
             }
+            isCompleted = true
             return true
         }
+        return false
+    }
+
+    private fun isSystemIgnoredKey(keyCode: Int): Boolean {
+        return keyCode == KeyEvent.KEYCODE_UNKNOWN ||
+            keyCode == KeyEvent.KEYCODE_VOLUME_UP ||
+            keyCode == KeyEvent.KEYCODE_VOLUME_DOWN ||
+            keyCode == KeyEvent.KEYCODE_VOLUME_MUTE ||
+            keyCode == KeyEvent.KEYCODE_POWER ||
+            keyCode == KeyEvent.KEYCODE_CAMERA
     }
 
     private fun isTargetedDevice(device: InputDevice?): Boolean {

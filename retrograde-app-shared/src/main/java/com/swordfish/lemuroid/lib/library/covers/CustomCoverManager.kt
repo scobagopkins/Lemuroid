@@ -26,6 +26,15 @@ class CustomCoverManager(private val appContext: Context) {
             mkdirs()
         }
 
+    /** Dedicated folder for covers downloaded during library scans, isolated from ROM directories. */
+    fun getDownloadedCoversDirectory(): File =
+        File(appContext.getExternalFilesDir(null), "downloaded-covers").apply {
+            mkdirs()
+        }
+
+    fun downloadedCoverFileForGame(gameId: Int): File =
+        File(getDownloadedCoversDirectory(), "cover_$gameId.png")
+
     /**
      * Resolves a file extension from the source URI's MIME type.
      * Falls back to "png" if the type can't be determined.
@@ -67,11 +76,16 @@ class CustomCoverManager(private val appContext: Context) {
         deleteCoversForGameId(gameId)
     }
 
-    /** Batch-deletes covers for a list of games. Called during library cleanup. */
+    /** Batch-deletes custom and downloaded covers for a list of games. Called during library cleanup. */
     fun deleteCoversForGames(games: List<Game>) {
         games.forEach { game ->
             if (game.customCoverUri != null) {
                 deleteCoversForGameId(game.id)
+            }
+            val downloaded = downloadedCoverFileForGame(game.id)
+            if (downloaded.exists()) {
+                val deleted = downloaded.delete()
+                Timber.d("Deleted downloaded cover ${downloaded.name}: $deleted")
             }
         }
     }

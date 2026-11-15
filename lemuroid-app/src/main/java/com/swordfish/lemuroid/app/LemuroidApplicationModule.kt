@@ -30,6 +30,7 @@ import com.swordfish.lemuroid.app.mobile.feature.input.GamePadShortcutBindingAct
 import com.swordfish.lemuroid.app.mobile.feature.main.MainActivity
 import com.swordfish.lemuroid.app.mobile.feature.settings.SettingsManager
 import com.swordfish.lemuroid.app.mobile.feature.shortcuts.ShortcutsGenerator
+import com.swordfish.lemuroid.app.shared.covers.CoverDownloader
 import com.swordfish.lemuroid.app.shared.game.ExternalGameLauncherActivity
 import com.swordfish.lemuroid.app.shared.game.GameLauncher
 import com.swordfish.lemuroid.app.shared.input.InputDeviceManager
@@ -67,6 +68,7 @@ import com.swordfish.lemuroid.lib.storage.DirectoriesManager
 import com.swordfish.lemuroid.lib.storage.StorageProvider
 import com.swordfish.lemuroid.lib.storage.StorageProviderRegistry
 import com.swordfish.lemuroid.lib.storage.local.LocalStorageProvider
+import com.swordfish.lemuroid.lib.storage.local.RomFolderRepacker
 import com.swordfish.lemuroid.lib.storage.local.StorageAccessFrameworkProvider
 import com.swordfish.lemuroid.metadata.libretrodb.LibretroDBMetadataProvider
 import com.swordfish.lemuroid.metadata.libretrodb.db.LibretroDBManager
@@ -195,6 +197,24 @@ abstract class LemuroidApplicationModule {
                 .connectTimeout(1, TimeUnit.MINUTES)
                 .readTimeout(1, TimeUnit.MINUTES)
                 .build()
+
+        @Provides
+        @PerApp
+        @JvmStatic
+        fun coverDownloader(
+            db: RetrogradeDatabase,
+            customCoverManager: CustomCoverManager,
+            libretroDBManager: LibretroDBManager,
+            okHttpClient: OkHttpClient,
+        ) = CoverDownloader(db, customCoverManager, libretroDBManager, okHttpClient)
+
+        @Provides
+        @PerApp
+        @JvmStatic
+        fun romFolderRepacker(
+            context: Context,
+            directoriesManager: DirectoriesManager,
+        ) = RomFolderRepacker(context, directoriesManager)
 
         @Provides
         @PerApp

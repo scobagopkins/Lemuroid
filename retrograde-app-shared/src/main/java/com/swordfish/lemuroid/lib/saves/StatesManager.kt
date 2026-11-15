@@ -59,6 +59,22 @@ class StatesManager(private val directoriesManager: DirectoriesManager) {
         setSaveState(getAutoSaveFileName(game), coreID.coreName, saveState)
     }
 
+    suspend fun getQuickSave(
+        game: Game,
+        coreID: CoreID,
+    ): SaveState? =
+        withContext(Dispatchers.IO) {
+            getSaveState(getQuickSaveFileName(game), coreID.coreName)
+        }
+
+    suspend fun setQuickSave(
+        game: Game,
+        saveState: SaveState,
+        coreID: CoreID,
+    ) = withContext(Dispatchers.IO) {
+        setSaveState(getQuickSaveFileName(game), coreID.coreName, saveState)
+    }
+
     suspend fun getSavedSlotsInfo(
         game: Game,
         coreID: CoreID,
@@ -141,6 +157,8 @@ class StatesManager(private val directoriesManager: DirectoriesManager) {
     }
 
     private fun getAutoSaveFileName(game: Game) = "${game.fileName}.state"
+
+    private fun getQuickSaveFileName(game: Game) = "${game.fileName}.quicksave"
 
     private fun getSlotSaveFileName(
         game: Game,

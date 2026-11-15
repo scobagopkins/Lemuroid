@@ -30,6 +30,9 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface GameDao {
+    @Query("SELECT * FROM games")
+    suspend fun selectAll(): List<Game>
+
     @Query("SELECT * FROM games WHERE id = :id")
     suspend fun selectById(id: Int): Game?
 
